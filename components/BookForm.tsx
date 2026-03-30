@@ -124,7 +124,7 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
                     Adil kullanım için bazı kurallarımız vardır:
                 </p>
                 <ul className="mt-2 space-y-1 text-sm text-slate-600 list-disc list-inside marker:text-indigo-400">
-                    <li>Her kullanıcının <strong>6 saatte bir yenilenen 1 masal</strong> oluşturma hakkı vardır.</li>
+                    <li>Her kullanıcının <strong>12 saatte bir yenilenen 1 masal</strong> oluşturma hakkı vardır.</li>
                     <li>Oluşturulan masalları PDF olarak indirebilirsiniz.</li>
                 </ul>
                 
