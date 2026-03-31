@@ -151,9 +151,7 @@ function App() {
         return { success: false, message: "Geçersiz promosyon kodu." };
     }
 
-    if (localStorage.getItem('masal_promo_used')) {
-        return { success: false, message: "Bu cihazda daha önce promosyon kodu kullanıldı." };
-    }
+    /* Single use check removed as per user request to allow entry whenever quota is full */
 
     // Apply Promo
     const storedData = localStorage.getItem('masal_quota');
@@ -174,7 +172,7 @@ function App() {
     const newData = { count: newCount, resetTime };
     
     localStorage.setItem('masal_quota', JSON.stringify(newData));
-    localStorage.setItem('masal_promo_used', 'true');
+    // localStorage.setItem('masal_promo_used', 'true'); // Not tracking persistent use anymore to allow repeated codes
     
     setRemainingQuota(QUOTA_LIMIT - newCount);
     

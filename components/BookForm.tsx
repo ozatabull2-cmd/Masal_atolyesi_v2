@@ -65,10 +65,7 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
     updateTimer(); // Initial call
     const interval = setInterval(updateTimer, 1000);
 
-    // Check if promo is already used locally to disable input immediately
-    if (localStorage.getItem('masal_promo_used')) {
-        setIsPromoUsed(true);
-    }
+    // Removed promo used logic here to allow multiple codes
 
     return () => clearInterval(interval);
   }, [nextResetTime]);
@@ -148,10 +145,9 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
                         <span className="text-sm font-bold text-purple-700">Promosyon Kodu</span>
                     </div>
 
-                    {!isPromoUsed && (
                         <div className="mb-3 bg-green-50 p-3 rounded-xl border border-green-100">
                             <p className="text-xs text-green-800 mb-2 leading-relaxed">
-                                🎁 <strong>+1 Ek Hak</strong> veren promosyon kodunu, WhatsApp grubumuza katılarak <strong>sabit mesaj</strong> kısmından alabilirsiniz.
+                                🎁 <strong>+Hak</strong> veren promosyon kodunu, WhatsApp grubumuza katılarak <strong>sabit mesaj</strong> kısmından alabilirsiniz.
                             </p>
                             <a 
                                 href="https://chat.whatsapp.com/JJFgs0neRkLCtm0OAHzOeK" 
@@ -163,13 +159,7 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
                                 WhatsApp Grubuna Katıl
                             </a>
                         </div>
-                    )}
 
-                    {isPromoUsed ? (
-                         <div className="text-xs font-medium text-green-600 bg-green-50 px-3 py-2 rounded-lg inline-block border border-green-200">
-                             ✨ Ekstra hak tanımlandı!
-                         </div>
-                    ) : (
                         <div className="flex gap-2 max-w-sm">
                             <input 
                                 type="text" 
@@ -186,7 +176,6 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
                                 Kullan
                             </button>
                         </div>
-                    )}
                     {promoMessage && (
                         <p className={`text-xs mt-2 font-bold ${promoMessage.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
                             {promoMessage.text}
@@ -224,6 +213,31 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
                         <p className="text-2xl font-bold text-indigo-600 mt-4 font-mono">
                            {timeLeft}
                         </p>
+
+                        <div className="mt-6 pt-6 border-t border-slate-100 pointer-events-auto">
+                           <p className="text-xs font-bold text-slate-500 mb-2">Hakkını Hemen Yenile:</p>
+                           <div className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    placeholder="Promosyon kodu" 
+                                    value={promoCode}
+                                    onChange={(e) => setPromoCode(e.target.value)}
+                                    className="flex-1 min-w-0 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                                />
+                                <button 
+                                    type="button"
+                                    onClick={handlePromoSubmit}
+                                    className="px-4 py-2 bg-indigo-500 text-white text-sm font-bold rounded-xl hover:bg-indigo-600 transition flex-shrink-0"
+                                >
+                                    Kullan
+                                </button>
+                           </div>
+                           {promoMessage && (
+                                <p className={`text-[10px] mt-2 font-bold ${promoMessage.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                                    {promoMessage.text}
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
