@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { StoryData } from '../types';
-import { ArrowLeft, ArrowRight, RefreshCcw, BookOpen, Download, Volume2, VolumeX, Loader2, Play, Pause, Instagram, RotateCcw, Star, MessageSquare, Music } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RefreshCcw, BookOpen, Download, Volume2, VolumeX, Loader2, Play, Pause, Instagram, RotateCcw, Star, MessageSquare, Music, Share2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { decodeAudioData, decodeBase64, audioBufferToWav } from '../services/geminiService';
 
@@ -16,6 +16,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
   const [audioLoading, setAudioLoading] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [canShare, setCanShare] = useState(false);
+
+  useEffect(() => {
+    if (navigator.share && navigator.canShare) {
+        setCanShare(true);
+    }
+  }, []);
   
   // Feedback State
   const [feedbackSent, setFeedbackSent] = useState(false);
@@ -259,6 +267,127 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
     }
   };
 
+  // Share Helper
+  const shareFile = async (type: 'pdf' | 'audio') => {
+    setIsSharing(true);
+    try {
+        if (type === 'pdf') {
+            setIsGeneratingPDF(true);
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            
+            // Helper to add watermark
+            const addWatermark = (yPos: number) => {
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(0, 0, 0);
+                doc.text("@ankaracocuketkinlikler", 105.3, yPos + 0.3, { align: 'center' });
+                doc.setTextColor(255, 255, 255);
+                doc.text("@ankaracocuketkinlikler", 105, yPos, { align: 'center' });
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("helvetica", "normal");
+            };
+
+            const normalizeTextForPDF = (str: string) => {
+                return str.replace(/ğ/g, "g").replace(/Ğ/g, "G")
+                          .replace(/ü/g, "u").replace(/Ü/g, "U")
+                          .replace(/ş/g, "s").replace(/Ş/g, "S")
+                          .replace(/ı/g, "i").replace(/İ/g, "I")
+                          .replace(/ö/g, "o").replace(/Ö/g, "O")
+                          .replace(/ç/g, "c").replace(/Ç/g, "C");
+            };
+
+            const sanitizeForFileName = (str: string) => {
+                return normalizeTextForPDF(str).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+            };
+
+            if (story.coverImageUrl) {
+                doc.addImage(story.coverImageUrl, 'PNG', 20, 40, 170, 170);
+                addWatermark(205);
+            }
+            doc.setFontSize(24);
+            doc.text(normalizeTextForPDF(story.title), 105, 230, { align: 'center', maxWidth: 170 });
+            
+            story.pages.forEach((page) => {
+                doc.addPage();
+                if (page.imageUrl) {
+                    doc.addImage(page.imageUrl, 'PNG', 20, 20, 170, 150);
+                    addWatermark(165);
+                }
+                doc.setFontSize(14);
+                const splitText = doc.splitTextToSize(normalizeTextForPDF(page.text), 170);
+                doc.text(splitText, 20, 190);
+            });
+
+            const safeName = sanitizeForFileName(story.title);
+            
+            if (navigator.share && navigator.canShare) {
+                const pdfArrayBuffer = doc.output('arraybuffer');
+                const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+                const file = new File([blob], `${safeName}_Masal.pdf`, { type: 'application/pdf' });
+                
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: story.title,
+                        text: 'Masal Atölyesi tarafından oluşturulmuş sihirli masalım!'
+                    });
+                    return;
+                }
+            }
+            doc.save(`${safeName}_Masal.pdf`);
+            
+        } else {
+            setIsDownloadingAudio(true);
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+            const audioBuffers: AudioBuffer[] = [];
+            for (const page of story.pages) {
+                if (page.audioBase64) {
+                    const buffer = await decodeAudioData(decodeBase64(page.audioBase64), ctx, 24000, 1);
+                    audioBuffers.push(buffer);
+                }
+            }
+            if (audioBuffers.length === 0) return;
+            const totalLength = audioBuffers.reduce((acc, buf) => acc + buf.length, 0);
+            const mergedBuffer = ctx.createBuffer(1, totalLength, audioBuffers[0].sampleRate);
+            const channelData = mergedBuffer.getChannelData(0);
+            let offset = 0;
+            for (const buf of audioBuffers) {
+                channelData.set(buf.getChannelData(0), offset);
+                offset += buf.length;
+            }
+            const wavBlob = audioBufferToWav(mergedBuffer);
+            const safeName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+
+            if (navigator.share && navigator.canShare) {
+                const file = new File([wavBlob], `${safeName}_Sesli_Masal.wav`, { type: 'audio/wav' });
+                if (navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: `${story.title} - Sesli`,
+                        text: 'Masal Atölyesi tarafından oluşturulmuş sihirli masalımın sesi!'
+                    });
+                    return;
+                }
+            }
+            
+            const url = URL.createObjectURL(wavBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${safeName}_Sesli_Masal.wav`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            ctx.close();
+        }
+    } catch (e) {
+        console.error("Share error", e);
+    } finally {
+        setIsSharing(false);
+        setIsGeneratingPDF(false);
+        setIsDownloadingAudio(false);
+    }
+  };
+
   // Audio Download Helper
   const downloadAudio = async () => {
     setIsDownloadingAudio(true);
@@ -393,21 +522,21 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
               </button>
 
               <button 
-                onClick={downloadPDF}
-                disabled={isGeneratingPDF}
+                onClick={() => shareFile('pdf')}
+                disabled={isGeneratingPDF || isSharing}
                 className="bg-indigo-500 border border-indigo-400 text-white px-4 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-600 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
-                {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                PDF İndir
+                {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : canShare ? <Share2 className="w-5 h-5" /> : <Download className="w-5 h-5" />}
+                {canShare ? 'PDF Paylaş' : 'PDF İndir'}
               </button>
               
               <button 
-                onClick={downloadAudio}
-                disabled={isDownloadingAudio}
+                onClick={() => shareFile('audio')}
+                disabled={isDownloadingAudio || isSharing}
                 className="bg-pink-500 border border-pink-400 text-white px-4 py-3 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
-                {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : <Music className="w-5 h-5" />}
-                Ses İndir
+                {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : canShare ? <Share2 className="w-5 h-5" /> : <Music className="w-5 h-5" />}
+                {canShare ? 'Sesi Paylaş' : 'Sesi İndir'}
               </button>
 
               <button 
@@ -481,21 +610,21 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
                     </button>
 
                     <button
-                    onClick={downloadPDF}
-                    disabled={isGeneratingPDF}
-                    className="flex-1 bg-white text-indigo-900 px-2 py-3 rounded-xl font-bold hover:bg-indigo-50 transition flex flex-col items-center justify-center gap-1 shadow-lg text-xs sm:text-sm"
+                        onClick={() => shareFile('pdf')}
+                        disabled={isGeneratingPDF || isSharing}
+                        className="flex-1 bg-white text-indigo-900 px-2 py-3 rounded-xl font-bold hover:bg-indigo-50 transition flex flex-col items-center justify-center gap-1 shadow-lg text-xs sm:text-sm"
                     >
-                    {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                    PDF İndir
+                        {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : canShare ? <Share2 className="w-5 h-5" /> : <Download className="w-5 h-5" />}
+                        {canShare ? 'PDF Paylaş' : 'PDF İndir'}
                     </button>
 
                     <button
-                    onClick={downloadAudio}
-                    disabled={isDownloadingAudio}
-                    className="flex-1 bg-pink-500 text-white px-2 py-3 rounded-xl font-bold hover:bg-pink-400 transition flex flex-col items-center justify-center gap-1 shadow-lg text-xs sm:text-sm"
+                        onClick={() => shareFile('audio')}
+                        disabled={isDownloadingAudio || isSharing}
+                        className="flex-1 bg-pink-500 text-white px-2 py-3 rounded-xl font-bold hover:bg-pink-400 transition flex flex-col items-center justify-center gap-1 shadow-lg text-xs sm:text-sm"
                     >
-                    {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : <Music className="w-5 h-5" />}
-                    Ses İndir
+                        {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : canShare ? <Share2 className="w-5 h-5" /> : <Music className="w-5 h-5" />}
+                        {canShare ? 'Sesi Paylaş' : 'Sesi İndir'}
                     </button>
                 </div>
 
