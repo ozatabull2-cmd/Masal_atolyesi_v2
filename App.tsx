@@ -10,20 +10,28 @@ import { Hourglass } from 'lucide-react';
 const QUOTA_LIMIT = 1;
 const RESET_PERIOD_MS = 12 * 60 * 60 * 1000; // 12 hours in ms
 
-// List of valid promo codes (Existing + 10 Unpredictable)
-const PROMO_CODES = [
-  "ANKARA",   // Original
-  "K7L2M9",   // New 1
-  "X4P8R3",   // New 2
-  "T9Y5W1",   // New 3
-  "B2H6S8",   // New 4
-  "V3N7C4",   // New 5
-  "J8D5F2",   // New 6
-  "M6G9Z1",   // New 7
-  "R4K3L7",   // New 8
-  "S5T8P2",   // New 9
-  "Y1W9Q6"    // New 10
-];
+// Promo Codes configuration: code -> credits
+const PROMO_DATA: Record<string, number> = {
+  "ANKARA": 1,
+  "K7L2M9": 1,
+  "X4P8R3": 1,
+  "T9Y5W1": 1,
+  "B2H6S8": 1,
+  "V3N7C4": 1,
+  "J8D5F2": 1,
+  "M6G9Z1": 1,
+  "R4K3L7": 1,
+  "S5T8P2": 1,
+  "Y1W9Q6": 1,
+  // 10 Rights Codes
+  "ANKARA10": 10,
+  "MASAL10": 10,
+  "SIHIR10": 10,
+  "OZEL10": 10,
+  "HEDIYE10": 10
+};
+
+const PROMO_CODES = Object.keys(PROMO_DATA);
 
 // Internal Cooldown Component
 const CooldownView: React.FC<{ target: number; onComplete: () => void }> = ({ target, onComplete }) => {
@@ -158,8 +166,11 @@ function App() {
         resetTime = parsed.resetTime;
     }
 
-    // Reduce count by 1 (Adding 1 credit)
-    const newCount = currentCount - 1;
+    // Get credits for this code
+    const credits = PROMO_DATA[normalizedCode] || 1;
+
+    // Reduce count (Adding credits)
+    const newCount = currentCount - credits;
     const newData = { count: newCount, resetTime };
     
     localStorage.setItem('masal_quota', JSON.stringify(newData));
@@ -167,7 +178,7 @@ function App() {
     
     setRemainingQuota(QUOTA_LIMIT - newCount);
     
-    return { success: true, message: "Tebrikler! +1 Masal hakkı eklendi." };
+    return { success: true, message: `Tebrikler! +${credits} Masal hakkı eklendi.` };
   };
 
   const handleFormSubmit = async (input: UserInput) => {
