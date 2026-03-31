@@ -214,7 +214,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
                       .replace(/ş/g, "s").replace(/Ş/g, "S")
                       .replace(/ı/g, "i").replace(/İ/g, "I")
                       .replace(/ö/g, "o").replace(/Ö/g, "O")
-                      .replace(/ç/g, "c").replace(/Ç/g, "C");
+                      .replace(/ç/g, "c").replace(/Ç/g, "C")
+                      .replace(/[^a-zA-Z0-0_]/g, "_"); // Added more strict sanitization for filenames
         };
 
         // Cover Page
@@ -247,7 +248,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
             doc.text(`Sayfa ${page.pageNumber}`, 105, 280, { align: 'center' });
         });
 
-        doc.save(`${story.title.replace(/\s+/g, '_')}_Masal.pdf`);
+        const safeFileName = normalizeText(story.title.replace(/\s+/g, '_'));
+        doc.save(`${safeFileName}_Masal.pdf`);
 
     } catch (e) {
         console.error("PDF Error", e);
@@ -309,7 +311,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
       const url = URL.createObjectURL(wavBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${story.title.replace(/\s+/g, '_')}_Sesli_Masal.wav`;
+      const safeFileName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      a.download = `${safeFileName}_Sesli_Masal.wav`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
