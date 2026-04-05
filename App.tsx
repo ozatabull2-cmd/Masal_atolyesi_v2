@@ -6,6 +6,7 @@ import StoryViewer from './components/StoryViewer';
 import LoadingScreen from './components/LoadingScreen';
 import { generateIllustration, generateStoryText, generateSpeech } from './services/geminiService';
 import { Hourglass } from 'lucide-react';
+import { getUserQuota, updateUserQuota, db } from './firebase';
 
 const QUOTA_LIMIT = 1;
 const RESET_PERIOD_MS = 12 * 60 * 60 * 1000; // 12 hours in ms
@@ -80,63 +81,68 @@ function App() {
   // Cooldown State
   const [cooldownTarget, setCooldownTarget] = useState<number | null>(null);
 
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
   useEffect(() => {
-    checkQuota();
+    const params = new URLSearchParams(window.location.search);
+    const mail = params.get('mail');
+    if (mail) setUserEmail(mail);
+    checkQuota(mail);
   }, []);
 
-  const checkQuota = () => {
-    const storedData = localStorage.getItem('masal_quota');
+  const checkQuota = async (mailKey: string | null = userEmail) => {
+    let storedData = null;
+    try {
+        if (mailKey && db) {
+            storedData = await getUserQuota(mailKey);
+        } else {
+            const s = localStorage.getItem('masal_quota');
+            if (s) storedData = JSON.parse(s);
+        }
+    } catch(e) { console.error('Quota fetch error:', e); }
+
     if (storedData) {
-        const { count, resetTime } = JSON.parse(storedData);
+        const { count, resetTime } = storedData;
         const now = Date.now();
 
         if (resetTime && now > resetTime) {
-            // Time expired, reset quota
-            resetQuota();
+            resetQuotaState(mailKey);
         } else {
-            // Still within window
-            // Note: count can be negative if promo code was used, ensuring > 2 remaining quota
-            setRemainingQuota(QUOTA_LIMIT - count);
+            setRemainingQuota(QUOTA_LIMIT - (count || 0));
             setNextResetTime(resetTime);
         }
     } else {
-        // First time user
         setRemainingQuota(QUOTA_LIMIT);
         setNextResetTime(null);
     }
   };
 
-  const resetQuota = () => {
+  const setStorageData = (data: any, mailKey: string | null = userEmail) => {
+      if (mailKey && db) {
+          updateUserQuota(mailKey, data).catch(console.error);
+      } else {
+          localStorage.setItem('masal_quota', JSON.stringify(data));
+      }
+  };
+
+  const resetQuotaState = (mailKey: string | null = userEmail) => {
       const data = { count: 0, resetTime: null };
-      localStorage.setItem('masal_quota', JSON.stringify(data));
-      // Reset promo usage flag on full reset? 
-      // Requirement says "one time use per person". So we do NOT reset the promo flag here.
+      setStorageData(data, mailKey);
       setRemainingQuota(QUOTA_LIMIT);
       setNextResetTime(null);
   };
 
   const decrementQuota = () => {
-      const storedData = localStorage.getItem('masal_quota');
-      let count = 0;
+      const currentCount = QUOTA_LIMIT - remainingQuota;
+      const newCount = currentCount + 1;
       let resetTime = nextResetTime;
-
-      if (storedData) {
-          const parsed = JSON.parse(storedData);
-          count = parsed.count;
-          resetTime = parsed.resetTime;
-      }
-
-      const newCount = count + 1;
       
-      // If this is the first use in the cycle (and not just using up extra credit), set timer
-      // If count was negative (extra credit), and becomes <= 0, we are still "before" the limit.
-      // We set reset time only if we don't have one and we are using a "normal" credit.
       if (!resetTime && newCount > 0) {
           resetTime = Date.now() + RESET_PERIOD_MS;
       }
 
       const newData = { count: newCount, resetTime };
-      localStorage.setItem('masal_quota', JSON.stringify(newData));
+      setStorageData(newData);
       
       setRemainingQuota(QUOTA_LIMIT - newCount);
       setNextResetTime(resetTime);
@@ -154,25 +160,16 @@ function App() {
     /* Single use check removed as per user request to allow entry whenever quota is full */
 
     // Apply Promo
-    const storedData = localStorage.getItem('masal_quota');
-    let currentCount = 0;
-    let resetTime = nextResetTime;
-
-    if (storedData) {
-        const parsed = JSON.parse(storedData);
-        currentCount = parsed.count;
-        resetTime = parsed.resetTime;
-    }
+    const currentCount = QUOTA_LIMIT - remainingQuota;
 
     // Get credits for this code
     const credits = PROMO_DATA[normalizedCode] || 1;
 
     // Reduce count (Adding credits)
     const newCount = currentCount - credits;
-    const newData = { count: newCount, resetTime };
+    const newData = { count: newCount, resetTime: nextResetTime };
     
-    localStorage.setItem('masal_quota', JSON.stringify(newData));
-    // localStorage.setItem('masal_promo_used', 'true'); // Not tracking persistent use anymore to allow repeated codes
+    setStorageData(newData);
     
     setRemainingQuota(QUOTA_LIMIT - newCount);
     
