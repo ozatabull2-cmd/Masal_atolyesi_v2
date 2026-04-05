@@ -114,7 +114,7 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
             <div className="flex-1">
                 <h2 className="text-lg font-bold text-indigo-900">Hoş Geldiniz!</h2>
                 <p className="text-indigo-700 font-bold text-sm mt-2 mb-2">
-                    Ankara Çocuk Etkinlikler İnstagram sayfamız takipçilerine özeldir.
+                    Masal Atölyesi Uygulamamızı yükleyen takipçilerimize Özeldir
                 </p>
                 <p className="text-slate-600 text-sm mt-1">
                     Masal Atölyesi'nde çocuğunuza özel sihirli hikayeler oluşturabilirsiniz. 
