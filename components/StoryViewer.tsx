@@ -20,7 +20,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
   const [canShare, setCanShare] = useState(false);
 
   useEffect(() => {
-    if (navigator.share && navigator.canShare) {
+    if (navigator.share) {
         setCanShare(true);
     }
   }, []);
@@ -319,22 +319,33 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
             });
 
             const safeName = sanitizeForFileName(story.title);
+            const pdfArrayBuffer = doc.output('arraybuffer');
+            const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+            const file = new File([blob], `${safeName}_Masal.pdf`, { type: 'application/pdf' });
             
-            if (navigator.share && navigator.canShare) {
-                const pdfArrayBuffer = doc.output('arraybuffer');
-                const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
-                const file = new File([blob], `${safeName}_Masal.pdf`, { type: 'application/pdf' });
-                
-                if (navigator.canShare({ files: [file] })) {
+            if (navigator.share) {
+                try {
                     await navigator.share({
                         files: [file],
                         title: story.title,
                         text: 'Masal Atölyesi tarafından oluşturulmuş sihirli masalım!'
                     });
                     return;
+                } catch (err) {
+                    console.error("Paylaşım başarısız veya iptal edildi:", err);
                 }
             }
-            doc.save(`${safeName}_Masal.pdf`);
+            
+            // Fallback: Blob URL Download with target="_blank" (helps some WebViews)
+            const pdfBlobUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = pdfBlobUrl;
+            a.download = `${safeName}_Masal.pdf`;
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(pdfBlobUrl), 2000);
             
         } else {
             setIsDownloadingAudio(true);
@@ -358,25 +369,32 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
             const wavBlob = audioBufferToWav(mergedBuffer);
             const safeName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
 
-            if (navigator.share && navigator.canShare) {
+            if (navigator.share) {
                 const file = new File([wavBlob], `${safeName}_Sesli_Masal.wav`, { type: 'audio/wav' });
-                if (navigator.canShare({ files: [file] })) {
+                try {
                     await navigator.share({
                         files: [file],
                         title: `${story.title} - Sesli`,
                         text: 'Masal Atölyesi tarafından oluşturulmuş sihirli masalımın sesi!'
                     });
+                    // Release context if share is successful
+                    ctx.close();
                     return;
+                } catch (err) {
+                    console.error("Paylaşım başarısız veya iptal edildi:", err);
                 }
             }
             
+            // Fallback: Blob URL Download with target="_blank"
             const url = URL.createObjectURL(wavBlob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `${safeName}_Sesli_Masal.wav`;
+            a.target = '_blank';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
             ctx.close();
         }
     } catch (e) {
