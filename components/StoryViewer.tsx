@@ -94,6 +94,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
   const stopAudio = () => {
     if (audioSourceRef.current) {
       try {
+        audioSourceRef.current.onended = null;
         audioSourceRef.current.stop();
       } catch(e) { /* ignore */ }
       audioSourceRef.current = null;
@@ -125,7 +126,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
         const source = audioContextRef.current.createBufferSource();
         source.buffer = buffer;
         source.connect(audioContextRef.current.destination);
-        source.onended = () => setIsAudioPlaying(false);
+        source.onended = () => {
+            setIsAudioPlaying(false);
+            handleNext();
+        };
         
         audioSourceRef.current = source;
         source.start(0);

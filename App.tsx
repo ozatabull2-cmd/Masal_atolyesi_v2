@@ -329,7 +329,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] md:px-8">
       <div className="max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[90vh]">
         {renderContent()}
         
