@@ -1,41 +1,53 @@
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { initializeApp, getApps } from "firebase/app";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
-// TODO: Lütfen Firebase Console'dan aldığınız yapılandırma kodlarını buraya yapıştırın.
+// ankaracocukV3 Firebase projesi — Ankara Çocuk uygulaması ile aynı veritabanı
 const firebaseConfig = {
-  apiKey: "BURAYA_API_KEY_GELECEK",
-  authDomain: "BURAYA_AUTH_DOMAIN_GELECEK",
-  projectId: "BURAYA_PROJECT_ID_GELECEK",
-  storageBucket: "BURAYA_STORAGE_BUCKET_GELECEK",
-  messagingSenderId: "BURAYA_SENDER_ID_GELECEK",
-  appId: "BURAYA_APP_ID_GELECEK"
+  apiKey: "AIzaSyAXH4MpMNJI_uIVQkPN_-NkZhJeg5Mt5UA",
+  authDomain: "ankaracocukv3-b2182.firebaseapp.com",
+  databaseURL: "https://ankaracocukv3-b2182-default-rtdb.firebaseio.com",
+  projectId: "ankaracocukv3-b2182",
+  storageBucket: "ankaracocukv3-b2182.firebasestorage.app",
+  messagingSenderId: "678969625372",
+  appId: "1:678969625372:web:6e910af53e1218ab4488d9",
+  measurementId: "G-J4DFSMMWVL"
 };
 
-// Yalnızca yapılandırma tamamlandıysa Firebase'i başlat
-const app = firebaseConfig.apiKey !== "BURAYA_API_KEY_GELECEK" ? initializeApp(firebaseConfig) : null;
-const db = app ? getFirestore(app) : null;
+// Uygulamayı sadece bir kere başlat (hot-reload çakışmasını önler)
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const db = getFirestore(app);
 
 export { app, db };
 
-// Kullanıcı kotasını Firestore'dan getiren yardımcı fonksiyon
+// masal_users koleksiyonu — Ankara Çocuk users koleksiyonuna dokunmadan ayrı tutar
+// Firestore Rules'a gerek kalmadan public write olarak çalışması için ayrı koleksiyon kullanıyoruz
+
 export const getUserQuota = async (email: string) => {
   if (!db) return null;
-  const docRef = doc(db, "users", email);
-  const docSnap = await getDoc(docRef);
-  
-  if (docSnap.exists()) {
-    return docSnap.data();
-  } else {
-    // Kullanıcı ilk defa geliyorsa varsayılan kotayı oluştur
-    const defaultData = { count: 0, resetTime: null };
-    await setDoc(docRef, defaultData);
-    return defaultData;
+  try {
+    const docRef = doc(db, "masal_users", email);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return data.quota || { count: 0, resetTime: null };
+    } else {
+      const defaultData = { count: 0, resetTime: null };
+      await setDoc(docRef, { quota: defaultData, email }, { merge: true });
+      return defaultData;
+    }
+  } catch (e) {
+    console.error("Firebase getUserQuota error:", e);
+    return null; // Hata olursa localStorage'a fallback
   }
 };
 
-// Kullanıcı kotasını güncelleyen yardımcı fonksiyon
 export const updateUserQuota = async (email: string, newData: any) => {
   if (!db) return;
-  const docRef = doc(db, "users", email);
-  await updateDoc(docRef, newData);
+  try {
+    const docRef = doc(db, "masal_users", email);
+    await setDoc(docRef, { quota: newData, email, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (e) {
+    console.error("Firebase updateUserQuota error:", e);
+  }
 };
