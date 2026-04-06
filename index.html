@@ -18,7 +18,51 @@
           display: none;
         }
       }
+      :root {
+        --safe-top: 16px;
+        --safe-bottom: 16px;
+      }
     </style>
+    <script>
+      // Android WebView safe-area fix
+      // env(safe-area-inset-top) often returns 0 in WebViews
+      // so we use JS to detect and set a proper minimum
+      (function() {
+        function applyInsets() {
+          // Try to read CSS env() value
+          var el = document.createElement('div');
+          el.style.cssText = 'position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
+          document.documentElement.appendChild(el);
+          var envTop = parseInt(window.getComputedStyle(el).height) || 0;
+          document.documentElement.removeChild(el);
+
+          var el2 = document.createElement('div');
+          el2.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none;';
+          document.documentElement.appendChild(el2);
+          var envBottom = parseInt(window.getComputedStyle(el2).height) || 0;
+          document.documentElement.removeChild(el2);
+
+          // On Android/mobile WebViews env() often returns 0
+          // Use minimum padding to avoid content hiding behind camera/nav bar
+          var ua = navigator.userAgent || '';
+          var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+          var minTop    = isMobile ? 48 : 16;  // 48px covers almost all camera notches
+          var minBottom = isMobile ? 32 : 16;  // 32px covers Android nav bar
+
+          var safeTop    = Math.max(envTop, minTop);
+          var safeBottom = Math.max(envBottom, minBottom);
+
+          document.documentElement.style.setProperty('--safe-top',    safeTop    + 'px');
+          document.documentElement.style.setProperty('--safe-bottom',  safeBottom + 'px');
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', applyInsets);
+        } else {
+          applyInsets();
+        }
+      })();
+    </script>
   <script type="importmap">
 {
   "imports": {

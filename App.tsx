@@ -326,7 +326,10 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] md:px-8">
+    <div
+      className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 px-4 md:px-8"
+      style={{ paddingTop: 'var(--safe-top, 1rem)', paddingBottom: 'var(--safe-bottom, 1rem)' }}
+    >
       <div className="max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[90vh]">
         {renderContent()}
         
