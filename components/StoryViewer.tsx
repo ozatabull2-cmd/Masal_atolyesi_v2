@@ -551,8 +551,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
               {/* PDF İNDİR butonu */}
               <button 
-                onClick={downloadPDF}
-                disabled={isGeneratingPDF}
+                onClick={() => shareFile('pdf')}
+                disabled={isGeneratingPDF || isSharing}
                 className="bg-indigo-600 border border-indigo-500 text-white px-4 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
@@ -561,8 +561,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
               
               {/* SES İNDİR butonu */}
               <button 
-                onClick={downloadAudio}
-                disabled={isDownloadingAudio}
+                onClick={() => shareFile('audio')}
+                disabled={isDownloadingAudio || isSharing}
                 className="bg-pink-500 border border-pink-400 text-white px-4 py-3 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : <Music className="w-5 h-5" />}
@@ -656,8 +656,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
                 {/* İndirme Butonları */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
-                      onClick={downloadPDF}
-                      disabled={isGeneratingPDF}
+                      onClick={() => shareFile('pdf')}
+                      disabled={isGeneratingPDF || isSharing}
                       className="bg-indigo-600 text-white px-2 py-3 rounded-xl font-bold hover:bg-indigo-500 transition flex flex-col items-center justify-center gap-1 shadow-lg border border-indigo-400 text-xs sm:text-sm"
                     >
                       {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
@@ -665,8 +665,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
                     </button>
 
                     <button
-                      onClick={downloadAudio}
-                      disabled={isDownloadingAudio}
+                      onClick={() => shareFile('audio')}
+                      disabled={isDownloadingAudio || isSharing}
                       className="bg-pink-500 text-white px-2 py-3 rounded-xl font-bold hover:bg-pink-400 transition flex flex-col items-center justify-center gap-1 shadow-lg text-xs sm:text-sm"
                     >
                       {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : <Music className="w-5 h-5" />}
