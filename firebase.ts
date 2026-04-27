@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 // ankaracocukV3 Firebase projesi — Ankara Çocuk uygulaması ile aynı veritabanı
 const firebaseConfig = {
@@ -49,5 +49,24 @@ export const updateUserQuota = async (email: string, newData: any) => {
     await setDoc(docRef, { quota: newData, email, updatedAt: new Date().toISOString() }, { merge: true });
   } catch (e) {
     console.error("Firebase updateUserQuota error:", e);
+  }
+};
+
+// Kullanıcı görüşlerini kaydet (masal_feedback koleksiyonu)
+export const saveFeedback = async (data: {
+  rating: number;
+  comment: string;
+  storyTitle: string;
+  userEmail?: string | null;
+}) => {
+  if (!db) return;
+  try {
+    const colRef = collection(db, "masal_feedback");
+    await addDoc(colRef, {
+      ...data,
+      createdAt: serverTimestamp(),
+    });
+  } catch (e) {
+    console.error("Firebase saveFeedback error:", e);
   }
 };

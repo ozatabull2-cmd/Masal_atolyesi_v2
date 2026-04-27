@@ -301,7 +301,7 @@ function App() {
         return <LoadingScreen status="images" progress={loadingProgress} />;
 
       case AppState.Reading:
-        return storyData ? <StoryViewer story={storyData} onReset={resetApp} /> : null;
+        return storyData ? <StoryViewer story={storyData} onReset={resetApp} userEmail={userEmail} /> : null;
       
       case AppState.Cooldown:
         return cooldownTarget ? <CooldownView target={cooldownTarget} onComplete={() => setAppState(AppState.Input)} /> : null;

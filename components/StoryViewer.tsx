@@ -4,13 +4,15 @@ import { StoryData } from '../types';
 import { ArrowLeft, ArrowRight, RefreshCcw, BookOpen, Download, Volume2, VolumeX, Loader2, Play, Pause, Instagram, RotateCcw, Star, MessageSquare, Music, Share2 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { decodeAudioData, decodeBase64, audioBufferToWav } from '../services/geminiService';
+import { saveFeedback } from '../firebase';
 
 interface StoryViewerProps {
   story: StoryData;
   onReset: () => void;
+  userEmail?: string | null;
 }
 
-const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
+const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
@@ -184,11 +186,15 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
     setCurrentPage(0);
   }
 
-  const handleFeedbackSubmit = (e: React.FormEvent) => {
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setFeedbackSent(true);
-      // In a real app, you would send this data to a backend
-      console.log({ rating, comment });
+      await saveFeedback({
+        rating,
+        comment,
+        storyTitle: story.title,
+        userEmail: userEmail ?? null,
+      });
   }
 
   // PDF Generation Helper
@@ -543,23 +549,47 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
                 Kitabı Aç <ArrowRight className="w-5 h-5" />
               </button>
 
+              {/* PDF İNDİR butonu */}
               <button 
-                onClick={() => shareFile('pdf')}
-                disabled={isGeneratingPDF || isSharing}
-                className="bg-indigo-500 border border-indigo-400 text-white px-4 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-600 transition flex items-center justify-center gap-2 text-sm sm:text-base"
+                onClick={downloadPDF}
+                disabled={isGeneratingPDF}
+                className="bg-indigo-600 border border-indigo-500 text-white px-4 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
-                {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : canShare ? <Share2 className="w-5 h-5" /> : <Download className="w-5 h-5" />}
-                {canShare ? 'PDF Paylaş' : 'PDF İndir'}
+                {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                PDF İndir
               </button>
               
+              {/* SES İNDİR butonu */}
               <button 
-                onClick={() => shareFile('audio')}
-                disabled={isDownloadingAudio || isSharing}
+                onClick={downloadAudio}
+                disabled={isDownloadingAudio}
                 className="bg-pink-500 border border-pink-400 text-white px-4 py-3 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
-                {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : canShare ? <Share2 className="w-5 h-5" /> : <Music className="w-5 h-5" />}
-                {canShare ? 'Sesi Paylaş' : 'Sesi İndir'}
+                {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : <Music className="w-5 h-5" />}
+                Sesi İndir
               </button>
+
+              {/* Paylaş butonları - sadece paylaşım destekleniyorsa */}
+              {canShare && (
+                <>
+                  <button 
+                    onClick={() => shareFile('pdf')}
+                    disabled={isGeneratingPDF || isSharing}
+                    className="bg-indigo-400 border border-indigo-300 text-white px-4 py-2 rounded-full font-bold shadow hover:bg-indigo-500 transition flex items-center justify-center gap-2 text-xs"
+                  >
+                    {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                    PDF Paylaş
+                  </button>
+                  <button 
+                    onClick={() => shareFile('audio')}
+                    disabled={isDownloadingAudio || isSharing}
+                    className="bg-pink-400 border border-pink-300 text-white px-4 py-2 rounded-full font-bold shadow hover:bg-pink-500 transition flex items-center justify-center gap-2 text-xs"
+                  >
+                    {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                    Sesi Paylaş
+                  </button>
+                </>
+              )}
 
               <button 
                 onClick={onReset}
@@ -623,30 +653,54 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset }) => {
                     </div>
                 )}
 
+                {/* İndirme Butonları */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                    <button
+                      onClick={downloadPDF}
+                      disabled={isGeneratingPDF}
+                      className="bg-indigo-600 text-white px-2 py-3 rounded-xl font-bold hover:bg-indigo-500 transition flex flex-col items-center justify-center gap-1 shadow-lg border border-indigo-400 text-xs sm:text-sm"
+                    >
+                      {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                      PDF İndir
+                    </button>
+
+                    <button
+                      onClick={downloadAudio}
+                      disabled={isDownloadingAudio}
+                      className="bg-pink-500 text-white px-2 py-3 rounded-xl font-bold hover:bg-pink-400 transition flex flex-col items-center justify-center gap-1 shadow-lg text-xs sm:text-sm"
+                    >
+                      {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : <Music className="w-5 h-5" />}
+                      Sesi İndir
+                    </button>
+
+                    {canShare && (
+                      <>
+                        <button
+                          onClick={() => shareFile('pdf')}
+                          disabled={isGeneratingPDF || isSharing}
+                          className="bg-indigo-400 text-white px-2 py-2 rounded-xl font-bold hover:bg-indigo-300 transition flex flex-col items-center justify-center gap-1 shadow text-xs"
+                        >
+                          {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                          PDF Paylaş
+                        </button>
+                        <button
+                          onClick={() => shareFile('audio')}
+                          disabled={isDownloadingAudio || isSharing}
+                          className="bg-pink-400 text-white px-2 py-2 rounded-xl font-bold hover:bg-pink-300 transition flex flex-col items-center justify-center gap-1 shadow text-xs"
+                        >
+                          {isSharing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
+                          Sesi Paylaş
+                        </button>
+                      </>
+                    )}
+                </div>
+
                 <div className="flex gap-2">
                     <button
                     onClick={handleRestart}
-                    className="flex-1 bg-indigo-600 text-white px-2 py-3 rounded-xl font-bold hover:bg-indigo-500 transition flex flex-col items-center justify-center gap-1 shadow-lg border border-indigo-400 text-xs sm:text-sm"
+                    className="flex-1 bg-indigo-800/60 text-white px-2 py-3 rounded-xl font-bold hover:bg-indigo-700 transition flex flex-col items-center justify-center gap-1 shadow-lg border border-indigo-500 text-xs sm:text-sm"
                     >
                     <RotateCcw className="w-5 h-5" /> En Başa Dön
-                    </button>
-
-                    <button
-                        onClick={() => shareFile('pdf')}
-                        disabled={isGeneratingPDF || isSharing}
-                        className="flex-1 bg-white text-indigo-900 px-2 py-3 rounded-xl font-bold hover:bg-indigo-50 transition flex flex-col items-center justify-center gap-1 shadow-lg text-xs sm:text-sm"
-                    >
-                        {isGeneratingPDF ? <Loader2 className="w-5 h-5 animate-spin" /> : canShare ? <Share2 className="w-5 h-5" /> : <Download className="w-5 h-5" />}
-                        {canShare ? 'PDF Paylaş' : 'PDF İndir'}
-                    </button>
-
-                    <button
-                        onClick={() => shareFile('audio')}
-                        disabled={isDownloadingAudio || isSharing}
-                        className="flex-1 bg-pink-500 text-white px-2 py-3 rounded-xl font-bold hover:bg-pink-400 transition flex flex-col items-center justify-center gap-1 shadow-lg text-xs sm:text-sm"
-                    >
-                        {isDownloadingAudio ? <Loader2 className="w-5 h-5 animate-spin" /> : canShare ? <Share2 className="w-5 h-5" /> : <Music className="w-5 h-5" />}
-                        {canShare ? 'Sesi Paylaş' : 'Sesi İndir'}
                     </button>
                 </div>
 

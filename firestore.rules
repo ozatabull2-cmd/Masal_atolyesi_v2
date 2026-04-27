@@ -43,6 +43,13 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Masal Atölyesi kullanici gorusleri - herkes yazabilir, herkes okuyabilir (admin panel sifre ile korunuyor)
+    match /masal_feedback/{feedbackId} {
+      allow create: if true;
+      allow read: if true;
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
