@@ -74,37 +74,35 @@ function App() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
+  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const initialEmail = params ? (params.get('email') || params.get('mail')) : null;
+  const initialName = params ? params.get('name') : null;
+  const initialRole = params ? params.get('role') : null;
+  
+  const isAdminUser = initialRole === 'admin' || (initialEmail && initialEmail.toLowerCase().includes('admin'));
+
   // Quota State
-  const [remainingQuota, setRemainingQuota] = useState<number>(QUOTA_LIMIT);
+  const [remainingQuota, setRemainingQuota] = useState<number>(isAdminUser ? 999 : QUOTA_LIMIT);
   const [nextResetTime, setNextResetTime] = useState<number | null>(null);
 
   // Cooldown State
   const [cooldownTarget, setCooldownTarget] = useState<number | null>(null);
 
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(initialEmail || (initialName ? "kullanici@mail.com" : "test@mail.com"));
+  const [userName, setUserName] = useState<string | null>(initialName || (initialEmail ? "Kullanıcı" : "Test Kullanıcısı"));
+  const [userRole, setUserRole] = useState<string | null>(isAdminUser ? "admin" : (initialRole || "user"));
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const email = params.get('email') || params.get('mail');
-    const name = params.get('name');
-    const role = params.get('role');
-
-    if (email || name) {
-      setUserEmail(email || "kullanici@mail.com");
-      setUserName(name || "Kullanıcı");
-      setUserRole(role || "user");
-      checkQuota(email || "kullanici@mail.com");
-    } else {
-      setUserEmail("test@mail.com");
-      setUserName("Test Kullanıcısı");
-      setUserRole(role || "user");
-      checkQuota("test@mail.com");
-    }
+    checkQuota(userEmail);
   }, []);
 
   const checkQuota = async (mailKey: string | null = userEmail) => {
+    if (userRole === 'admin' || (mailKey && mailKey.toLowerCase().includes('admin'))) {
+      setRemainingQuota(999);
+      setNextResetTime(null);
+      return;
+    }
+
     let storedData = null;
     try {
         if (mailKey && db) {
