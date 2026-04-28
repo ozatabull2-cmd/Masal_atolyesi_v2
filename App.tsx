@@ -79,7 +79,7 @@ function App() {
   const initialName = params ? params.get('name') : null;
   const initialRole = params ? params.get('role') : null;
   
-  const isAdminUser = initialRole === 'admin' || (initialEmail && initialEmail.toLowerCase().includes('admin'));
+  const isAdminUser = initialRole === 'admin' || (initialEmail && initialEmail.toLowerCase().trim() === 'ozgurweb112@gmail.com');
 
   // Quota State
   const [remainingQuota, setRemainingQuota] = useState<number>(isAdminUser ? 999 : QUOTA_LIMIT);
@@ -97,7 +97,7 @@ function App() {
   }, []);
 
   const checkQuota = async (mailKey: string | null = userEmail) => {
-    if (userRole === 'admin' || (mailKey && mailKey.toLowerCase().includes('admin'))) {
+    if (userRole === 'admin' || (mailKey && mailKey.toLowerCase().trim() === 'ozgurweb112@gmail.com')) {
       setRemainingQuota(999);
       setNextResetTime(null);
       return;
