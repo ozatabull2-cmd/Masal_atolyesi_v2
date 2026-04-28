@@ -82,12 +82,26 @@ function App() {
   const [cooldownTarget, setCooldownTarget] = useState<number | null>(null);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const mail = params.get('mail');
-    if (mail) setUserEmail(mail);
-    checkQuota(mail);
+    const email = params.get('email') || params.get('mail');
+    const name = params.get('name');
+    const role = params.get('role');
+
+    if (email || name) {
+      setUserEmail(email || "kullanici@mail.com");
+      setUserName(name || "Kullanıcı");
+      setUserRole(role || "user");
+      checkQuota(email || "kullanici@mail.com");
+    } else {
+      setUserEmail("test@mail.com");
+      setUserName("Test Kullanıcısı");
+      setUserRole(role || "user");
+      checkQuota("test@mail.com");
+    }
   }, []);
 
   const checkQuota = async (mailKey: string | null = userEmail) => {
@@ -177,7 +191,7 @@ function App() {
   };
 
   const handleFormSubmit = async (input: UserInput) => {
-    if (remainingQuota <= 0) {
+    if (remainingQuota <= 0 && userRole !== 'admin') {
         setErrorMsg("Hakkınız dolmuştur. Lütfen sürenin dolmasını bekleyin veya promosyon kodu kullanın.");
         return;
     }
@@ -190,10 +204,14 @@ function App() {
       const generatedStory = await generateStoryText(input);
       
       // Decrement quota
-      decrementQuota();
+      if (userRole !== 'admin') {
+        decrementQuota();
+      }
 
       // Set Cooldown Target (60 seconds from now)
-      setCooldownTarget(Date.now() + 60000);
+      if (userRole !== 'admin') {
+        setCooldownTarget(Date.now() + 60000);
+      }
 
       // 2. Start Image and Audio Generation Phase
       setAppState(AppState.GeneratingImages);
@@ -268,7 +286,7 @@ function App() {
 
   const resetApp = () => {
     // Check for cooldown
-    if (cooldownTarget && Date.now() < cooldownTarget) {
+    if (cooldownTarget && Date.now() < cooldownTarget && userRole !== 'admin') {
         setAppState(AppState.Cooldown);
         return;
     }
@@ -291,6 +309,8 @@ function App() {
                 remainingQuota={remainingQuota}
                 nextResetTime={nextResetTime}
                 onApplyPromo={handleApplyPromo}
+                isAdmin={userRole === 'admin'}
+                userName={userName}
             />
         );
       

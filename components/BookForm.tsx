@@ -9,12 +9,14 @@ interface BookFormProps {
   remainingQuota: number;
   nextResetTime: number | null;
   onApplyPromo: (code: string) => { success: boolean, message: string };
+  isAdmin?: boolean;
+  userName?: string | null;
 }
 
 const CATEGORIES = ["Uzay Macerası", "Büyülü Orman", "Dinozorlar Dünyası", "Deniz Altı", "Süper Kahramanlar", "Prensesler & Şövalyeler"];
 const MORALS = ["Paylaşmak Güzeldir", "Cesaret", "Dürüstlük", "Doğa Sevgisi", "Arkadaşlık", "Uyku Vakti"];
 
-const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQuota, nextResetTime, onApplyPromo }) => {
+const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQuota, nextResetTime, onApplyPromo, isAdmin, userName }) => {
   const [formData, setFormData] = useState<UserInput>({
     childName: '',
     age: AgeGroup.Toddler,
@@ -100,7 +102,7 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
       }, 5000);
   };
 
-  const isQuotaFull = remainingQuota <= 0;
+  const isQuotaFull = isAdmin ? false : remainingQuota <= 0;
 
   return (
     <div className="w-full max-w-2xl mx-auto animate-fade-in">
@@ -112,7 +114,7 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
                 <Info className="w-6 h-6 text-indigo-600" />
             </div>
             <div className="flex-1">
-                <h2 className="text-lg font-bold text-indigo-900">Hoş Geldiniz!</h2>
+                <h2 className="text-lg font-bold text-indigo-900">Hoş Geldiniz{userName ? `, ${userName}` : ''}!</h2>
                 <p className="text-indigo-700 font-bold text-sm mt-2 mb-2">
                     Masal Atölyesi Uygulamamızı yükleyen takipçilerimize Özeldir
                 </p>
@@ -120,17 +122,23 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
                     Masal Atölyesi'nde çocuğunuza özel sihirli hikayeler oluşturabilirsiniz. 
                     Adil kullanım için bazı kurallarımız vardır:
                 </p>
-                <ul className="mt-2 space-y-1 text-sm text-slate-600 list-disc list-inside marker:text-indigo-400">
-                    <li>Her kullanıcının <strong>12 saatte bir yenilenen 1 masal</strong> oluşturma hakkı vardır.</li>
-                    <li>Oluşturulan masalları PDF olarak indirebilirsiniz.</li>
-                </ul>
+                {isAdmin ? (
+                    <div className="mt-2 p-3 bg-indigo-100/50 border border-indigo-200 text-indigo-800 rounded-xl font-bold text-sm flex items-center gap-2">
+                         👑 Süper Yetkili Admin Girişi: Tüm süre sınırları ve hak kısıtlamaları kaldırılmıştır.
+                    </div>
+                ) : (
+                    <ul className="mt-2 space-y-1 text-sm text-slate-600 list-disc list-inside marker:text-indigo-400">
+                        <li>Her kullanıcının <strong>12 saatte bir yenilenen 1 masal</strong> oluşturma hakkı vardır.</li>
+                        <li>Oluşturulan masalları PDF olarak indirebilirsiniz.</li>
+                    </ul>
+                )}
                 
                 <div className="mt-4 flex flex-wrap items-center gap-4">
                     <div className={`px-4 py-2 rounded-lg border flex items-center gap-2 font-bold ${isQuotaFull ? 'bg-red-50 border-red-200 text-red-600' : 'bg-green-50 border-green-200 text-green-700'}`}>
                         <BookOpen className="w-4 h-4" />
-                        Kalan Hakkınız: {remainingQuota} / 1
+                        {isAdmin ? "Kalan Hakkınız: Sınırsız (Süper Yetki)" : `Kalan Hakkınız: ${remainingQuota} / 1`}
                     </div>
-                    {nextResetTime && timeLeft && (
+                    {nextResetTime && timeLeft && !isAdmin && (
                         <div className="px-4 py-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center gap-2 text-slate-500 text-xs font-medium font-mono">
                             <Clock className="w-3 h-3" />
                             Yenilenmeye Kalan: {timeLeft}
