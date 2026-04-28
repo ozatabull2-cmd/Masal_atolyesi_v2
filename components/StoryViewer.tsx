@@ -37,17 +37,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const [comment, setComment] = useState('');
 
   const handleDownloadClick = (type: 'pdf' | 'audio') => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      setModalType(type);
-      setShowDownloadModal(true);
-    } else {
-      if (type === 'pdf') {
-        downloadPDF();
-      } else {
-        downloadAudio();
-      }
-    }
+    setModalType(type);
+    setShowDownloadModal(true);
   };
 
   const handleCopyLink = () => {
@@ -99,10 +90,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
             audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
         }
     };
-    // We try to init immediately, but it might be suspended until interaction
     initAudio();
     
-    // If suspended, resume on first click
     const resumeAudio = async () => {
         if (audioContextRef.current?.state === 'suspended') {
             await audioContextRef.current.resume();
@@ -111,8 +100,16 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     window.addEventListener('click', resumeAudio, { once: true });
     window.addEventListener('touchstart', resumeAudio, { once: true });
 
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+            stopAudio();
+        }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
         stopAudio();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
         if (audioContextRef.current) {
             audioContextRef.current.close();
             audioContextRef.current = null;
@@ -227,81 +224,83 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   // PDF Generation Helper
   const downloadPDF = async () => {
     setIsGeneratingPDF(true);
-    try {
-        const doc = new jsPDF({
-            orientation: 'p',
-            unit: 'mm',
-            format: 'a4'
-        });
+    setTimeout(async () => {
+        try {
+            const doc = new jsPDF({
+                orientation: 'p',
+                unit: 'mm',
+                format: 'a4'
+            });
 
-        // Helper to add watermark
-        const addWatermark = (yPos: number) => {
-            doc.setFontSize(10);
-            doc.setFont("helvetica", "bold");
-            
-            // Shadow (Simulated)
-            doc.setTextColor(0, 0, 0);
-            doc.text("@ankaracocuketkinlikler", 105.3, yPos + 0.3, { align: 'center' });
-            
-            // Text
-            doc.setTextColor(255, 255, 255);
-            doc.text("@ankaracocuketkinlikler", 105, yPos, { align: 'center' });
-            
-            // Reset to black for normal text
-            doc.setTextColor(0, 0, 0);
-            doc.setFont("helvetica", "normal");
-        };
+            // Helper to add watermark
+            const addWatermark = (yPos: number) => {
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                
+                // Shadow (Simulated)
+                doc.setTextColor(0, 0, 0);
+                doc.text("@ankaracocuketkinlikler", 105.3, yPos + 0.3, { align: 'center' });
+                
+                // Text
+                doc.setTextColor(255, 255, 255);
+                doc.text("@ankaracocuketkinlikler", 105, yPos, { align: 'center' });
+                
+                // Reset to black for normal text
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("helvetica", "normal");
+            };
 
-        // Turkish char map for basic ASCII support in default PDF fonts
-        const normalizeText = (str: string) => {
-            return str.replace(/ğ/g, "g").replace(/Ğ/g, "G")
-                      .replace(/ü/g, "u").replace(/Ü/g, "U")
-                      .replace(/ş/g, "s").replace(/Ş/g, "S")
-                      .replace(/ı/g, "i").replace(/İ/g, "I")
-                      .replace(/ö/g, "o").replace(/Ö/g, "O")
-                      .replace(/ç/g, "c").replace(/Ç/g, "C")
-                      .replace(/[^a-zA-Z0-0_]/g, "_"); // Added more strict sanitization for filenames
-        };
+            // Turkish char map for basic ASCII support in default PDF fonts
+            const normalizeText = (str: string) => {
+                return str.replace(/ğ/g, "g").replace(/Ğ/g, "G")
+                          .replace(/ü/g, "u").replace(/Ü/g, "U")
+                          .replace(/ş/g, "s").replace(/Ş/g, "S")
+                          .replace(/ı/g, "i").replace(/İ/g, "I")
+                          .replace(/ö/g, "o").replace(/Ö/g, "O")
+                          .replace(/ç/g, "c").replace(/Ç/g, "C")
+                          .replace(/[^a-zA-Z0-0_]/g, "_"); // Added more strict sanitization for filenames
+            };
 
-        // Cover Page
-        if (story.coverImageUrl) {
-            doc.addImage(story.coverImageUrl, 'PNG', 20, 40, 170, 170);
-            addWatermark(205); // Position inside the cover image at bottom
-        }
-        
-        doc.setFontSize(24);
-        doc.text(normalizeText(story.title), 105, 230, { align: 'center', maxWidth: 170 });
-        doc.setFontSize(12);
-        doc.text(normalizeText(story.summary), 105, 250, { align: 'center', maxWidth: 150 });
-        
-        // Story Pages
-        story.pages.forEach((page, index) => {
-            doc.addPage();
-            // Image
-            if (page.imageUrl) {
-                doc.addImage(page.imageUrl, 'PNG', 20, 20, 170, 150);
-                addWatermark(165); // Position inside the story image at bottom
+            // Cover Page
+            if (story.coverImageUrl) {
+                doc.addImage(story.coverImageUrl, 'PNG', 20, 40, 170, 170);
+                addWatermark(205); // Position inside the cover image at bottom
             }
             
-            // Text (Bottom half)
-            doc.setFontSize(14);
-            const splitText = doc.splitTextToSize(normalizeText(page.text), 170);
-            doc.text(splitText, 20, 190);
+            doc.setFontSize(24);
+            doc.text(normalizeText(story.title), 105, 230, { align: 'center', maxWidth: 170 });
+            doc.setFontSize(12);
+            doc.text(normalizeText(story.summary), 105, 250, { align: 'center', maxWidth: 150 });
             
-            // Footer
-            doc.setFontSize(10);
-            doc.text(`Sayfa ${page.pageNumber}`, 105, 280, { align: 'center' });
-        });
+            // Story Pages
+            story.pages.forEach((page, index) => {
+                doc.addPage();
+                // Image
+                if (page.imageUrl) {
+                    doc.addImage(page.imageUrl, 'PNG', 20, 20, 170, 150);
+                    addWatermark(165); // Position inside the story image at bottom
+                }
+                
+                // Text (Bottom half)
+                doc.setFontSize(14);
+                const splitText = doc.splitTextToSize(normalizeText(page.text), 170);
+                doc.text(splitText, 20, 190);
+                
+                // Footer
+                doc.setFontSize(10);
+                doc.text(`Sayfa ${page.pageNumber}`, 105, 280, { align: 'center' });
+            });
 
-        const safeFileName = normalizeText(story.title.replace(/\s+/g, '_'));
-        doc.save(`${safeFileName}_Masal.pdf`);
+            const safeFileName = normalizeText(story.title.replace(/\s+/g, '_'));
+            doc.save(`${safeFileName}_Masal.pdf`);
 
-    } catch (e) {
-        console.error("PDF Error", e);
-        alert("PDF oluşturulurken bir hata oluştu.");
-    } finally {
-        setIsGeneratingPDF(false);
-    }
+        } catch (e) {
+            console.error("PDF Error", e);
+            alert("PDF oluşturulurken bir hata oluştu.");
+        } finally {
+            setIsGeneratingPDF(false);
+        }
+    }, 100);
   };
 
   // Share Helper
@@ -446,70 +445,70 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   // Audio Download Helper
   const downloadAudio = async () => {
     setIsDownloadingAudio(true);
-    try {
-      // Use a temporary context or logic, but for now reverting to simple implementation
-      // NOTE: This simple implementation might interrupt playback as it uses CPU resources,
-      // but we are reverting to the "previous version" state.
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+    setTimeout(async () => {
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
 
-      // 1. Collect and decode all audio chunks
-      const audioBuffers: AudioBuffer[] = [];
-      for (const page of story.pages) {
-        if (page.audioBase64) {
-          const buffer = await decodeAudioData(
-            decodeBase64(page.audioBase64),
-            ctx,
-            24000,
-            1
+          // 1. Collect and decode all audio chunks
+          const audioBuffers: AudioBuffer[] = [];
+          for (const page of story.pages) {
+            if (page.audioBase64) {
+              const buffer = await decodeAudioData(
+                decodeBase64(page.audioBase64),
+                ctx,
+                24000,
+                1
+              );
+              audioBuffers.push(buffer);
+            }
+          }
+
+          if (audioBuffers.length === 0) {
+            alert("İndirilecek ses bulunamadı.");
+            setIsDownloadingAudio(false);
+            return;
+          }
+
+          // 2. Calculate total length
+          const totalLength = audioBuffers.reduce((acc, buf) => acc + buf.length, 0);
+          
+          // 3. Create merged buffer
+          const mergedBuffer = ctx.createBuffer(
+            1, 
+            totalLength, 
+            audioBuffers[0].sampleRate
           );
-          audioBuffers.push(buffer);
+          const channelData = mergedBuffer.getChannelData(0);
+
+          let offset = 0;
+          for (const buf of audioBuffers) {
+            channelData.set(buf.getChannelData(0), offset);
+            offset += buf.length;
+          }
+
+          // 4. Convert to WAV Blob
+          const wavBlob = audioBufferToWav(mergedBuffer);
+
+          // 5. Trigger Download
+          const url = URL.createObjectURL(wavBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          const safeFileName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+          a.download = `${safeFileName}_Sesli_Masal.wav`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          
+          ctx.close();
+
+        } catch (e) {
+          console.error("Audio Download Error", e);
+          alert("Ses dosyası oluşturulurken bir hata oluştu.");
+        } finally {
+          setIsDownloadingAudio(false);
         }
-      }
-
-      if (audioBuffers.length === 0) {
-        alert("İndirilecek ses bulunamadı.");
-        return;
-      }
-
-      // 2. Calculate total length
-      const totalLength = audioBuffers.reduce((acc, buf) => acc + buf.length, 0);
-      
-      // 3. Create merged buffer
-      const mergedBuffer = ctx.createBuffer(
-        1, 
-        totalLength, 
-        audioBuffers[0].sampleRate
-      );
-      const channelData = mergedBuffer.getChannelData(0);
-
-      let offset = 0;
-      for (const buf of audioBuffers) {
-        channelData.set(buf.getChannelData(0), offset);
-        offset += buf.length;
-      }
-
-      // 4. Convert to WAV Blob
-      const wavBlob = audioBufferToWav(mergedBuffer);
-
-      // 5. Trigger Download
-      const url = URL.createObjectURL(wavBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      const safeFileName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-      a.download = `${safeFileName}_Sesli_Masal.wav`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      ctx.close();
-
-    } catch (e) {
-      console.error("Audio Download Error", e);
-      alert("Ses dosyası oluşturulurken bir hata oluştu.");
-    } finally {
-      setIsDownloadingAudio(false);
-    }
+    }, 100);
   };
 
   // Reusable Watermark Component
