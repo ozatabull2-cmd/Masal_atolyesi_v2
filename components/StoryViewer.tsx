@@ -389,7 +389,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     return (
       <div 
         className="flex flex-col items-center justify-center min-h-[600px] animate-fade-in w-full"
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
       >
         <div className="relative w-full max-w-md aspect-[3/4] bg-gradient-to-br from-indigo-600 to-purple-700 rounded-r-3xl rounded-l-lg shadow-2xl border-l-8 border-indigo-900 flex flex-col items-center justify-start pt-8 text-center text-white transform transition hover:scale-[1.01] overflow-hidden">
            
@@ -495,7 +494,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   if (currentPage === totalPages) {
     return (
         <div className="flex flex-col items-center justify-center min-h-[600px] animate-fade-in w-full"
-             onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
         >
           <div className="relative w-full max-w-md min-h-[500px] bg-indigo-900 rounded-l-3xl rounded-r-lg shadow-2xl border-r-8 border-indigo-950 flex flex-col items-center justify-center p-8 text-center text-white overflow-hidden">
             <h2 className="text-3xl font-bold handwritten mb-2 text-yellow-100">SON</h2>
