@@ -43,5 +43,6 @@ export enum AppState {
   GeneratingImages,
   Reading,
   Error,
-  Cooldown
+  Cooldown,
+  Library
 }

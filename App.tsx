@@ -4,8 +4,10 @@ import { AppState, StoryData, UserInput } from './types';
 import BookForm from './components/BookForm';
 import StoryViewer from './components/StoryViewer';
 import LoadingScreen from './components/LoadingScreen';
+import LibraryView from './components/LibraryView';
+import { useStoryLibrary } from './hooks/useStoryLibrary';
 import { generateIllustration, generateStoryText, generateSpeech } from './services/geminiService';
-import { Hourglass } from 'lucide-react';
+import { Hourglass, BookOpen } from 'lucide-react';
 import { getUserQuota, updateUserQuota, db } from './firebase';
 
 const QUOTA_LIMIT = 1;
@@ -91,6 +93,8 @@ function App() {
   const [userEmail, setUserEmail] = useState<string | null>(initialEmail || (initialName ? "kullanici@mail.com" : "test@mail.com"));
   const [userName, setUserName] = useState<string | null>(initialName || (initialEmail ? "Kullanıcı" : "Test Kullanıcısı"));
   const [userRole, setUserRole] = useState<string | null>(isAdminUser ? "admin" : (initialRole || "user"));
+
+  const { savedStories, saveStory, deleteStory } = useStoryLibrary();
 
   useEffect(() => {
     checkQuota(userEmail);
@@ -267,11 +271,14 @@ function App() {
 
       const [coverUrl, pagesWithAssets] = await Promise.all([coverPromise, pagesPromise]);
 
-      setStoryData({ 
+      const finalStory = { 
         ...generatedStory, 
         coverImageUrl: coverUrl, 
         pages: pagesWithAssets 
-      });
+      };
+
+      setStoryData(finalStory);
+      await saveStory(finalStory);
       
       setAppState(AppState.Reading);
 
@@ -301,15 +308,25 @@ function App() {
     switch (appState) {
       case AppState.Input:
         return (
-            <BookForm 
-                onSubmit={handleFormSubmit} 
-                isSubmitting={false} 
-                remainingQuota={remainingQuota}
-                nextResetTime={nextResetTime}
-                onApplyPromo={handleApplyPromo}
-                isAdmin={userRole === 'admin'}
-                userName={userName}
-            />
+            <div className="w-full flex flex-col items-center">
+                {savedStories.length > 0 && (
+                  <button
+                    onClick={() => setAppState(AppState.Library)}
+                    className="mb-6 bg-white text-indigo-600 px-6 py-3 rounded-full font-bold shadow hover:bg-indigo-50 transition flex items-center justify-center gap-2 border-2 border-indigo-100 animate-fade-in"
+                  >
+                    <BookOpen className="w-5 h-5" /> Kayıtlı Masallarım ({savedStories.length})
+                  </button>
+                )}
+                <BookForm 
+                    onSubmit={handleFormSubmit} 
+                    isSubmitting={false} 
+                    remainingQuota={remainingQuota}
+                    nextResetTime={nextResetTime}
+                    onApplyPromo={handleApplyPromo}
+                    isAdmin={userRole === 'admin'}
+                    userName={userName}
+                />
+            </div>
         );
       
       case AppState.GeneratingStory:
@@ -320,6 +337,17 @@ function App() {
 
       case AppState.Reading:
         return storyData ? <StoryViewer story={storyData} onReset={resetApp} userEmail={userEmail} /> : null;
+
+      case AppState.Library:
+        return <LibraryView 
+                  stories={savedStories} 
+                  onOpenStory={(story) => {
+                      setStoryData(story);
+                      setAppState(AppState.Reading);
+                  }}
+                  onDeleteStory={deleteStory}
+                  onBack={() => setAppState(AppState.Input)} 
+               />;
       
       case AppState.Cooldown:
         return cooldownTarget ? <CooldownView target={cooldownTarget} onComplete={() => setAppState(AppState.Input)} /> : null;
