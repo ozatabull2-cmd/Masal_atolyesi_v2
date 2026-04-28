@@ -20,6 +20,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [canShare, setCanShare] = useState(false);
+  
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [modalType, setModalType] = useState<'pdf' | 'audio'>('pdf');
+  const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
     if (navigator.share) {
@@ -31,6 +35,29 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+
+  const handleDownloadClick = (type: 'pdf' | 'audio') => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      setModalType(type);
+      setShowDownloadModal(true);
+    } else {
+      if (type === 'pdf') {
+        downloadPDF();
+      } else {
+        downloadAudio();
+      }
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 3000);
+    }).catch(err => {
+        console.error('Failed to copy', err);
+    });
+  };
 
   const totalPages = story.pages.length + 1; // Cover + Story Pages
 
@@ -551,7 +578,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
               {/* PDF İNDİR butonu */}
               <button 
-                onClick={downloadPDF}
+                onClick={() => handleDownloadClick('pdf')}
                 disabled={isGeneratingPDF || isSharing}
                 className="bg-indigo-600 border border-indigo-500 text-white px-4 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
@@ -561,7 +588,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
               
               {/* SES İNDİR butonu */}
               <button 
-                onClick={downloadAudio}
+                onClick={() => handleDownloadClick('audio')}
                 disabled={isDownloadingAudio || isSharing}
                 className="bg-pink-500 border border-pink-400 text-white px-4 py-3 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-sm sm:text-base"
               >
@@ -656,7 +683,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
                 {/* İndirme Butonları */}
                 <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
-                      onClick={downloadPDF}
+                      onClick={() => handleDownloadClick('pdf')}
                       disabled={isGeneratingPDF || isSharing}
                       className="bg-indigo-600 text-white px-2 py-3 rounded-xl font-bold hover:bg-indigo-500 transition flex flex-col items-center justify-center gap-1 shadow-lg border border-indigo-400 text-xs sm:text-sm"
                     >
@@ -665,7 +692,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
                     </button>
 
                     <button
-                      onClick={downloadAudio}
+                      onClick={() => handleDownloadClick('audio')}
                       disabled={isDownloadingAudio || isSharing}
                       className="bg-pink-500 text-white px-2 py-3 rounded-xl font-bold hover:bg-pink-400 transition flex flex-col items-center justify-center gap-1 shadow-lg text-xs sm:text-sm"
                     >
@@ -825,6 +852,68 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         </div>
 
       </div>
+
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border-4 border-indigo-100 text-center relative animate-pop-in pointer-events-auto">
+            <button 
+              onClick={() => setShowDownloadModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition text-2xl font-medium"
+            >
+              ✕
+            </button>
+            
+            <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Download className="w-8 h-8 text-indigo-600" />
+            </div>
+            
+            <h3 className="text-xl font-bold text-indigo-900 mb-2">
+              {modalType === 'pdf' ? 'PDF İndir / Paylaş' : 'Sesi İndir / Paylaş'}
+            </h3>
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              Mobil uygulama kısıtlamaları nedeniyle doğrudan dosya indirmek engellenmiş olabilir. Aşağıdaki seçenekleri kullanabilirsiniz:
+            </p>
+            
+            <div className="space-y-3">
+              <button 
+                onClick={() => {
+                  setShowDownloadModal(false);
+                  if (modalType === 'pdf') downloadPDF();
+                  else downloadAudio();
+                }}
+                className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow"
+              >
+                <Download className="w-5 h-5" />
+                İndirmeyi Dene (Klasik)
+              </button>
+              
+              <button 
+                onClick={() => {
+                  setShowDownloadModal(false);
+                  shareFile(modalType);
+                }}
+                className="w-full py-3 bg-pink-500 text-white font-bold rounded-xl hover:bg-pink-600 transition flex items-center justify-center gap-2 shadow"
+              >
+                <Share2 className="w-5 h-5" />
+                Telefonda Paylaş / WhatsApp
+              </button>
+              
+              <button 
+                onClick={handleCopyLink}
+                className="w-full py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition flex items-center justify-center gap-2 border border-slate-200"
+              >
+                <Share2 className="w-5 h-5" />
+                {copySuccess ? 'Bağlantı Kopyalandı! ✨' : 'Sayfa Linkini Kopyala'}
+              </button>
+            </div>
+            
+            <p className="text-[10px] text-slate-400 mt-4 leading-tight">
+              *Dosya inmezse kopyaladığınız linki Chrome/Safari tarayıcısına yapıştırarak masalınızı indirebilirsiniz.
+            </p>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
