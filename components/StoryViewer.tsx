@@ -25,6 +25,11 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const [modalType, setModalType] = useState<'pdf' | 'audio'>('pdf');
   const [copySuccess, setCopySuccess] = useState(false);
 
+  const [readyPdfUrl, setReadyPdfUrl] = useState<string | null>(null);
+  const [readyPdfFile, setReadyPdfFile] = useState<File | null>(null);
+  const [readyAudioUrl, setReadyAudioUrl] = useState<string | null>(null);
+  const [readyAudioFile, setReadyAudioFile] = useState<File | null>(null);
+
   useEffect(() => {
     if (navigator.share) {
         setCanShare(true);
@@ -37,8 +42,21 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const [comment, setComment] = useState('');
 
   const handleDownloadClick = (type: 'pdf' | 'audio') => {
-    setModalType(type);
-    setShowDownloadModal(true);
+    if (type === 'pdf') {
+      if (readyPdfUrl) {
+        setModalType('pdf');
+        setShowDownloadModal(true);
+      } else {
+        generatePDF();
+      }
+    } else {
+      if (readyAudioUrl) {
+        setModalType('audio');
+        setShowDownloadModal(true);
+      } else {
+        generateAudio();
+      }
+    }
   };
 
   const handleCopyLink = () => {
@@ -56,32 +74,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
-  // Touch handling for swipe
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
-  const minSwipeDistance = 50;
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchEndX.current = null;
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStartX.current || !touchEndX.current) return;
-    const distance = touchStartX.current - touchEndX.current;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
-        handleNext();
-    } else if (isRightSwipe) {
-        handlePrev();
-    }
-  };
 
   // Initialize Audio Context on Mount/User Interaction
   useEffect(() => {
@@ -222,7 +215,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   }
 
   // PDF Generation Helper
-  const downloadPDF = async () => {
+  const generatePDF = async () => {
     setIsGeneratingPDF(true);
     setTimeout(async () => {
         try {
@@ -292,7 +285,16 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
             });
 
             const safeFileName = normalizeText(story.title.replace(/\s+/g, '_'));
-            doc.save(`${safeFileName}_Masal.pdf`);
+            const pdfArrayBuffer = doc.output('arraybuffer');
+            const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+            const file = new File([blob], `${safeFileName}_Masal.pdf`, { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+
+            setReadyPdfFile(file);
+            setReadyPdfUrl(url);
+
+            setModalType('pdf');
+            setShowDownloadModal(true);
 
         } catch (e) {
             console.error("PDF Error", e);
@@ -303,147 +305,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     }, 100);
   };
 
-  // Share Helper
-  const shareFile = async (type: 'pdf' | 'audio') => {
-    setIsSharing(true);
-    try {
-        if (type === 'pdf') {
-            setIsGeneratingPDF(true);
-            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-            
-            // Helper to add watermark
-            const addWatermark = (yPos: number) => {
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                doc.setTextColor(0, 0, 0);
-                doc.text("@ankaracocuketkinlikler", 105.3, yPos + 0.3, { align: 'center' });
-                doc.setTextColor(255, 255, 255);
-                doc.text("@ankaracocuketkinlikler", 105, yPos, { align: 'center' });
-                doc.setTextColor(0, 0, 0);
-                doc.setFont("helvetica", "normal");
-            };
 
-            const normalizeTextForPDF = (str: string) => {
-                return str.replace(/ğ/g, "g").replace(/Ğ/g, "G")
-                          .replace(/ü/g, "u").replace(/Ü/g, "U")
-                          .replace(/ş/g, "s").replace(/Ş/g, "S")
-                          .replace(/ı/g, "i").replace(/İ/g, "I")
-                          .replace(/ö/g, "o").replace(/Ö/g, "O")
-                          .replace(/ç/g, "c").replace(/Ç/g, "C");
-            };
-
-            const sanitizeForFileName = (str: string) => {
-                return normalizeTextForPDF(str).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-            };
-
-            if (story.coverImageUrl) {
-                doc.addImage(story.coverImageUrl, 'PNG', 20, 40, 170, 170);
-                addWatermark(205);
-            }
-            doc.setFontSize(24);
-            doc.text(normalizeTextForPDF(story.title), 105, 230, { align: 'center', maxWidth: 170 });
-            
-            story.pages.forEach((page) => {
-                doc.addPage();
-                if (page.imageUrl) {
-                    doc.addImage(page.imageUrl, 'PNG', 20, 20, 170, 150);
-                    addWatermark(165);
-                }
-                doc.setFontSize(14);
-                const splitText = doc.splitTextToSize(normalizeTextForPDF(page.text), 170);
-                doc.text(splitText, 20, 190);
-            });
-
-            const safeName = sanitizeForFileName(story.title);
-            const pdfArrayBuffer = doc.output('arraybuffer');
-            const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
-            const file = new File([blob], `${safeName}_Masal.pdf`, { type: 'application/pdf' });
-            
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        files: [file],
-                        title: story.title,
-                        text: 'Masal Atölyesi tarafından oluşturulmuş sihirli masalım!'
-                    });
-                    return;
-                } catch (err) {
-                    console.error("Paylaşım başarısız veya iptal edildi:", err);
-                }
-            }
-            
-            // Fallback: Blob URL Download with target="_blank" (helps some WebViews)
-            const pdfBlobUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = pdfBlobUrl;
-            a.download = `${safeName}_Masal.pdf`;
-            a.target = '_blank';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(pdfBlobUrl), 2000);
-            
-        } else {
-            setIsDownloadingAudio(true);
-            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
-            const audioBuffers: AudioBuffer[] = [];
-            for (const page of story.pages) {
-                if (page.audioBase64) {
-                    const buffer = await decodeAudioData(decodeBase64(page.audioBase64), ctx, 24000, 1);
-                    audioBuffers.push(buffer);
-                }
-            }
-            if (audioBuffers.length === 0) return;
-            const totalLength = audioBuffers.reduce((acc, buf) => acc + buf.length, 0);
-            const mergedBuffer = ctx.createBuffer(1, totalLength, audioBuffers[0].sampleRate);
-            const channelData = mergedBuffer.getChannelData(0);
-            let offset = 0;
-            for (const buf of audioBuffers) {
-                channelData.set(buf.getChannelData(0), offset);
-                offset += buf.length;
-            }
-            const wavBlob = audioBufferToWav(mergedBuffer);
-            const safeName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-
-            if (navigator.share) {
-                const file = new File([wavBlob], `${safeName}_Sesli_Masal.wav`, { type: 'audio/wav' });
-                try {
-                    await navigator.share({
-                        files: [file],
-                        title: `${story.title} - Sesli`,
-                        text: 'Masal Atölyesi tarafından oluşturulmuş sihirli masalımın sesi!'
-                    });
-                    // Release context if share is successful
-                    ctx.close();
-                    return;
-                } catch (err) {
-                    console.error("Paylaşım başarısız veya iptal edildi:", err);
-                }
-            }
-            
-            // Fallback: Blob URL Download with target="_blank"
-            const url = URL.createObjectURL(wavBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${safeName}_Sesli_Masal.wav`;
-            a.target = '_blank';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 2000);
-            ctx.close();
-        }
-    } catch (e) {
-        console.error("Share error", e);
-    } finally {
-        setIsSharing(false);
-        setIsGeneratingPDF(false);
-        setIsDownloadingAudio(false);
-    }
-  };
 
   // Audio Download Helper
-  const downloadAudio = async () => {
+  const generateAudio = async () => {
     setIsDownloadingAudio(true);
     setTimeout(async () => {
         try {
@@ -488,19 +353,17 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
           // 4. Convert to WAV Blob
           const wavBlob = audioBufferToWav(mergedBuffer);
-
-          // 5. Trigger Download
           const url = URL.createObjectURL(wavBlob);
-          const a = document.createElement('a');
-          a.href = url;
           const safeFileName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-          a.download = `${safeFileName}_Sesli_Masal.wav`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          const file = new File([wavBlob], `${safeFileName}_Sesli_Masal.wav`, { type: 'audio/wav' });
+
+          setReadyAudioFile(file);
+          setReadyAudioUrl(url);
           
           ctx.close();
+
+          setModalType('audio');
+          setShowDownloadModal(true);
 
         } catch (e) {
           console.error("Audio Download Error", e);
@@ -758,7 +621,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   return (
     <div 
         className="w-full max-w-5xl mx-auto animate-fade-in"
-        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
     >
       {/* Pagination & Controls Header */}
       <div className="flex justify-between items-center mb-4 px-4">
@@ -874,27 +736,36 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
             </p>
             
             <div className="space-y-3">
-              <button 
-                onClick={() => {
-                  setShowDownloadModal(false);
-                  if (modalType === 'pdf') downloadPDF();
-                  else downloadAudio();
-                }}
+              <a 
+                href={modalType === 'pdf' ? (readyPdfUrl || '#') : (readyAudioUrl || '#')}
+                download={modalType === 'pdf' ? `${story.title}_Masal.pdf` : `${story.title}_Sesli_Masal.wav`}
                 className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow"
+                onClick={() => setShowDownloadModal(false)}
               >
                 <Download className="w-5 h-5" />
-                İndirmeyi Dene (Klasik)
-              </button>
+                İndir (Cihaza Kaydet)
+              </a>
               
               <button 
                 onClick={() => {
                   setShowDownloadModal(false);
-                  shareFile(modalType);
+                  const file = modalType === 'pdf' ? readyPdfFile : readyAudioFile;
+                  if (file && navigator.share) {
+                      navigator.share({
+                          files: [file],
+                          title: story.title,
+                          text: 'Masal Atölyesi tarafından oluşturulmuş sihirli masalım!'
+                      }).catch(err => {
+                          console.log("Paylaşım başarısız veya iptal:", err);
+                      });
+                  } else {
+                      alert("Cihazınız paylaşım özelliğini desteklemiyor.");
+                  }
                 }}
                 className="w-full py-3 bg-pink-500 text-white font-bold rounded-xl hover:bg-pink-600 transition flex items-center justify-center gap-2 shadow"
               >
                 <Share2 className="w-5 h-5" />
-                Telefonda Paylaş / WhatsApp
+                Uygulamada Paylaş / WhatsApp
               </button>
               
               <button 
