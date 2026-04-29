@@ -312,14 +312,14 @@ function App() {
                 {savedStories.length > 0 && (
                   <button
                     onClick={() => setAppState(AppState.Library)}
-                    className="mb-10 group relative flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-500 rounded-full font-extrabold text-white shadow-[0_8px_30px_rgb(249,115,22,0.4)] hover:shadow-[0_8px_40px_rgb(236,72,153,0.6)] hover:-translate-y-1 transition-all duration-300 border-[3px] border-white/50 animate-fade-in"
+                    className="mb-10 group relative flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 rounded-full font-extrabold text-white shadow-[0_8px_30px_rgba(30,58,138,0.5)] hover:shadow-[0_8px_40px_rgba(30,64,175,0.7)] hover:-translate-y-1 transition-all duration-300 border-[3px] border-indigo-400/50 animate-fade-in"
                   >
                     {/* Glowing background blur effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-pink-500 rounded-full blur-md opacity-50 group-hover:opacity-80 transition duration-500 -z-10"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-800 to-blue-700 rounded-full blur-md opacity-40 group-hover:opacity-70 transition duration-500 -z-10"></div>
                     
-                    <BookOpen className="w-6 h-6 drop-shadow-md" /> 
+                    <BookOpen className="w-6 h-6 text-blue-300 drop-shadow-md" /> 
                     <span className="text-lg drop-shadow-md tracking-wider">KAYITLI MASALLARIM ({savedStories.length})</span>
-                    <Sparkles className="w-5 h-5 text-yellow-100 animate-pulse drop-shadow-md" />
+                    <Sparkles className="w-5 h-5 text-blue-300 animate-pulse drop-shadow-md" />
                   </button>
                 )}
                 <BookForm 
