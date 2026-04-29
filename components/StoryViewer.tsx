@@ -484,14 +484,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
 
 
-              <button 
-                onClick={handleShare}
-                className="col-span-1 sm:col-span-2 group relative flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 rounded-full font-extrabold text-white shadow-[0_8px_30px_rgba(16,185,129,0.4)] hover:shadow-[0_8px_40px_rgba(20,184,166,0.6)] hover:-translate-y-1 transition-all duration-300 border-2 border-emerald-400/30 text-base sm:text-lg"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-500 rounded-full blur-md opacity-40 group-hover:opacity-70 transition duration-500 -z-10"></div>
-                <Share2 className="w-6 h-6 animate-pulse" />
-                <span>Sihirli Masalını Paylaş ✨</span>
-              </button>
+
 
               <button 
                 onClick={onReset}
@@ -556,14 +549,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
 
 
-                <button 
-                  onClick={handleShare}
-                  className="w-full group relative flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-green-500 rounded-xl font-extrabold text-white shadow-[0_8px_30px_rgba(16,185,129,0.4)] hover:shadow-[0_8px_40px_rgba(20,184,166,0.6)] hover:-translate-y-1 transition-all duration-300 border-2 border-emerald-400/30 text-sm sm:text-base mb-2"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-500 rounded-xl blur-md opacity-40 group-hover:opacity-70 transition duration-500 -z-10"></div>
-                  <Share2 className="w-5 h-5 animate-pulse" />
-                  <span>Sihirli Masalı Paylaş ✨</span>
-                </button>
+
 
                 <div className="flex gap-2">
                     <button
