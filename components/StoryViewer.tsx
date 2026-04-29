@@ -31,23 +31,29 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const [readyAudioFile, setReadyAudioFile] = useState<File | null>(null);
 
   const handleShare = async () => {
-    const shareText = `Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk! ✨ Çocuklar için sihirli masallar yazan bu harika uygulamayı sen de dene: ${window.location.origin}`;
+    const shareText = `Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk! ✨ Çocuklar için sihirli masallar yazan bu harika uygulamayı sen de dene: https://chat.whatsapp.com/JJFgs0neRkLCtm0OAHzOeK`;
     
+    // Panoya kopyalama (Güvenli Fallback)
+    try {
+      await navigator.clipboard.writeText(shareText);
+    } catch (e) {
+      console.error("Panoya kopyalama basarisiz", e);
+    }
+
     if (navigator.share) {
       try {
         await navigator.share({
           title: story.title,
-          text: shareText,
-          url: window.location.origin
+          text: shareText
         });
+        return;
       } catch (err) {
-        console.log("Paylaşım iptal edildi veya hata oluştu:", err);
+        console.log("Navigator share basarisiz, kopyalama yontemi kullaniliyor", err);
       }
-    } else {
-      // Fallback to WhatsApp
-      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
-      window.open(waUrl, '_blank');
     }
+
+    // WebView veya Masaüstü için direkt bildirim
+    alert("✨ Harika! Paylaşım metni panoya kopyalandı.\n\nŞimdi WhatsApp'a gidip mesaj alanına 'Yapıştır' diyerek sevdiklerinizle paylaşabilirsiniz!");
   };
 
   // Feedback State
