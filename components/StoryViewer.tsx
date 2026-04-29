@@ -33,6 +33,20 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const handleShare = async () => {
     const shareText = `Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk! ✨ Çocuklar için sihirli masallar yazan bu harika uygulamayı sen de dene: https://chat.whatsapp.com/JJFgs0neRkLCtm0OAHzOeK`;
     
+    let filesToShare: File[] = [];
+    
+    // Kapak resmini dosyaya dönüştür (Instagram/Görsel paylaşımı için)
+    if (story.coverImageUrl) {
+      try {
+        const response = await fetch(story.coverImageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'masal_kapak.jpg', { type: blob.type || 'image/jpeg' });
+        filesToShare = [file];
+      } catch (e) {
+        console.error("Kapak resmi paylaşıma hazırlanamadı:", e);
+      }
+    }
+
     // Panoya kopyalama (Güvenli Fallback)
     try {
       await navigator.clipboard.writeText(shareText);
@@ -42,18 +56,29 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: story.title,
-          text: shareText
-        });
-        return;
+        // Görsel paylaşımı destekleniyor mu kontrol et
+        if (filesToShare.length > 0 && typeof navigator.canShare === 'function' && navigator.canShare({ files: filesToShare })) {
+          await navigator.share({
+            files: filesToShare,
+            title: story.title,
+            text: shareText
+          });
+          return;
+        } else {
+          // Sadece metin paylaş
+          await navigator.share({
+            title: story.title,
+            text: shareText
+          });
+          return;
+        }
       } catch (err) {
         console.log("Navigator share basarisiz, kopyalama yontemi kullaniliyor", err);
       }
     }
 
     // WebView veya Masaüstü için direkt bildirim
-    alert("✨ Harika! Paylaşım metni panoya kopyalandı.\n\nŞimdi WhatsApp'a gidip mesaj alanına 'Yapıştır' diyerek sevdiklerinizle paylaşabilirsiniz!");
+    alert("✨ Harika! Paylaşım metni panoya kopyalandı.\n\nŞimdi Instagram veya WhatsApp'a gidip mesaj alanına 'Yapıştır' diyerek sevdiklerinizle paylaşabilirsiniz!");
   };
 
   // Feedback State
