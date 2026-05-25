@@ -158,7 +158,7 @@ export const decodeBase64 = (base64: string) => {
 export const generateSpeech = async (text: string): Promise<string> => {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
+      model: "gemini-2.5-flash-tts",
       contents: [{ parts: [{ text: text }] }],
       config: {
         responseModalities: [Modality.AUDIO],
