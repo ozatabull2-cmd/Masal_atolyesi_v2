@@ -4,32 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Masal Atölyesi - Kişiye Özel Masallar</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Patrick+Hand&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Nunito', sans-serif;
-      }
-      .handwritten {
-        font-family: 'Patrick Hand', cursive;
-      }
-      @media print {
-        .no-print {
-          display: none;
-        }
-      }
-      :root {
-        --safe-top: 16px;
-        --safe-bottom: 16px;
-      }
-    </style>
+    <link rel="stylesheet" href="/index.css">
     <script>
       // Android WebView safe-area fix
-      // env(safe-area-inset-top) often returns 0 in WebViews
-      // so we use JS to detect and set a proper minimum
       (function() {
         function applyInsets() {
-          // Try to read CSS env() value
           var el = document.createElement('div');
           el.style.cssText = 'position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
           document.documentElement.appendChild(el);
@@ -42,12 +21,10 @@
           var envBottom = parseInt(window.getComputedStyle(el2).height) || 0;
           document.documentElement.removeChild(el2);
 
-          // On Android/mobile WebViews env() often returns 0
-          // Use minimum padding to avoid content hiding behind camera/nav bar
           var ua = navigator.userAgent || '';
           var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-          var minTop    = isMobile ? 48 : 16;  // 48px covers almost all camera notches
-          var minBottom = isMobile ? 32 : 16;  // 32px covers Android nav bar
+          var minTop    = isMobile ? 48 : 16;
+          var minBottom = isMobile ? 32 : 16;
 
           var safeTop    = Math.max(envTop, minTop);
           var safeBottom = Math.max(envBottom, minBottom);
@@ -63,22 +40,9 @@
         }
       })();
     </script>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://cdn.jsdelivr.net/npm/react@19.2.0/+esm",
-    "react-dom/": "https://cdn.jsdelivr.net/npm/react-dom@19.2.0/",
-    "react/": "https://cdn.jsdelivr.net/npm/react@19.2.0/",
-    "@google/genai": "https://cdn.jsdelivr.net/npm/@google/genai@1.30.0/+esm",
-    "lucide-react": "https://cdn.jsdelivr.net/npm/lucide-react@0.554.0/+esm",
-    "jspdf": "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/+esm"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
-</head>
+  </head>
   <body class="bg-slate-50 text-slate-900 antialiased">
     <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
-</body>
+    <script type="module" src="/index.tsx"></script>
+  </body>
 </html>
