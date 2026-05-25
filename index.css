@@ -1,8 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Google Fonts - @import her zaman en üstte olmalı */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Patrick+Hand&display=swap');
 
-/* Nunito ve Patrick Hand yerine sistem fontları - Google Fonts CDN yok */
+@import "tailwindcss";
+@source "./**/*.{ts,tsx,html}";
+
 body {
   font-family: 'Nunito', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
