@@ -7,7 +7,7 @@ import LoadingScreen from './components/LoadingScreen';
 import LibraryView from './components/LibraryView';
 import { useStoryLibrary } from './hooks/useStoryLibrary';
 import { generateIllustration, generateStoryText, generateSpeech } from './services/geminiService';
-import { Hourglass, BookOpen, Sparkles } from 'lucide-react';
+import { Hourglass, BookOpen, Sparkles, Wrench } from 'lucide-react';
 import { getUserQuota, updateUserQuota, db } from './firebase';
 
 const QUOTA_LIMIT = 1;
@@ -68,6 +68,38 @@ const CooldownView: React.FC<{ target: number; onComplete: () => void }> = ({ ta
             <p className="text-sm text-indigo-300 font-bold uppercase tracking-wider">Saniye Kaldı</p>
         </div>
     );
+};
+
+// Maintenance View Component
+const MaintenanceView: React.FC<{ hasSavedStories: boolean }> = ({ hasSavedStories }) => {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[350px] bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-8 text-center max-w-md mx-auto border border-indigo-100/50 animate-fade-in">
+      <div className="bg-amber-100 p-6 rounded-full mb-6 animate-bounce">
+        <Wrench className="w-12 h-12 text-amber-600" />
+      </div>
+      <h2 className="text-2xl font-extrabold text-slate-800 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        Uygulama Bakımdadır
+      </h2>
+      <p className="text-slate-600 leading-relaxed mb-6 font-medium">
+        Şu an için uygulama bakımdadır, yakın zamanda tekrar açılacaktır.
+      </p>
+      {hasSavedStories ? (
+        <>
+          <div className="w-full h-[1px] bg-slate-100 my-4"></div>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">
+            Daha önce oluşturduğunuz masallara yukarıdaki <strong>"KAYITLI MASALLARIM"</strong> butonundan erişmeye devam edebilirsiniz.
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="w-full h-[1px] bg-slate-100 my-4"></div>
+          <p className="text-xs text-slate-400 font-medium">
+            Yeni masal oluşturma hizmeti geçici bir süre için durdurulmuştur.
+          </p>
+        </>
+      )}
+    </div>
+  );
 };
 
 function App() {
@@ -322,15 +354,19 @@ function App() {
                     <Sparkles className="w-5 h-5 text-blue-300 animate-pulse drop-shadow-md" />
                   </button>
                 )}
-                <BookForm 
-                    onSubmit={handleFormSubmit} 
-                    isSubmitting={false} 
-                    remainingQuota={remainingQuota}
-                    nextResetTime={nextResetTime}
-                    onApplyPromo={handleApplyPromo}
-                    isAdmin={userRole === 'admin'}
-                    userName={userName}
-                />
+                {isAdminUser ? (
+                  <BookForm 
+                      onSubmit={handleFormSubmit} 
+                      isSubmitting={false} 
+                      remainingQuota={remainingQuota}
+                      nextResetTime={nextResetTime}
+                      onApplyPromo={handleApplyPromo}
+                      isAdmin={userRole === 'admin'}
+                      userName={userName}
+                  />
+                ) : (
+                  <MaintenanceView hasSavedStories={savedStories.length > 0} />
+                )}
             </div>
         );
       
