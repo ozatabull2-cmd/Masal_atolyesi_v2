@@ -1,126 +1,40 @@
-
-import { GoogleGenAI, Type, Modality } from "@google/genai";
-import { UserInput, StoryData, AgeGroup } from "../types";
-
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
-
-if (!apiKey) {
-  throw new Error("VITE_GEMINI_API_KEY is missing");
-}
-
-const ai = new GoogleGenAI({ apiKey });
-
-
-// Helper to map age to word count constraints
-const getConstraintsForAge = (age: AgeGroup): string => {
-  switch (age) {
-    case AgeGroup.Toddler:
-      return "Çok kısa cümleler, basit kelimeler, bol tekrar, somut kavramlar. Sayfa başına Maksimum 40-50 kelime.";
-    case AgeGroup.Child:
-      return "Biraz daha karmaşık cümleler, hafif macera, sebep-sonuç ilişkileri. Sayfa başına Maksimum 80-100 kelime.";
-    case AgeGroup.PreTeen:
-      return "Gelişmiş kelime hazinesi, detaylı betimlemeler, güçlü kurgu. Sayfa başına Maksimum 150 kelime.";
-    default:
-      return "Basit ve anlaşılır dil.";
-  }
-};
+import { UserInput, StoryData } from "../types";
 
 export const generateStoryText = async (input: UserInput): Promise<StoryData> => {
-  const { childName, age, gender, category, moral, hairColor, eyeColor } = input;
-
-  const ageConstraints = getConstraintsForAge(age);
-  
-  // Define character appearance string if provided
-  let characterAppearance = "";
-  if (hairColor || eyeColor) {
-      const hair = hairColor ? `${hairColor} hair` : "";
-      const eye = eyeColor ? `${eyeColor} eyes` : "";
-      characterAppearance = `Character physical appearance: ${hair} ${eye}.`;
-  }
-
-  const prompt = `
-    Sen profesyonel bir çocuk kitabı yazarı ve sanat yönetmenisin.
-    Aşağıdaki bilgilerle bir çocuk masalı oluştur:
-    
-    - Kahraman Adı: ${childName}
-    - Yaş Grubu: ${age}
-    - Cinsiyet: ${gender}
-    - Kategori/Tema: ${category}
-    - Öğüt/Konu: ${moral}
-    - Fiziksel Özellikler: ${hairColor ? 'Saç: ' + hairColor : ''} ${eyeColor ? 'Göz: ' + eyeColor : ''}
-
-    KURALLAR:
-    1. Hikaye dili TÜRKÇE olmalıdır.
-    2. Dil ve anlatım şu yaş grubu kuralına uymalıdır: ${ageConstraints}
-    3. Asla korku, şiddet veya kötü örnek içermemelidir.
-    4. Çıktı tam olarak 5 sayfa olmalıdır.
-    5. Her sayfa için bir "imagePrompt" (Görsel İstemi) yazılmalıdır. 
-    6. Ayrıca kitap kapağı için "coverImagePrompt" yazılmalıdır.
-    7. imagePrompt İNGİLİZCE olmalı, sahneyi detaylı betimlemeli ve stil olarak "Whimsical digital illustration, soft colors, Pixar style 3D render" belirtilmelidir.
-    8. ÖNEMLİ: "imagePrompt" içinde karakterin fiziksel özelliklerini (${characterAppearance || `a ${age} year old ${gender}`}) HER SEFERİNDE tutarlı bir şekilde belirt.
-
-    JSON FORMATINDA yanıt ver.
-  `;
-
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          title: { type: Type.STRING, description: "Hikayenin başlığı" },
-          summary: { type: Type.STRING, description: "Hikayenin 2 cümlelik özeti" },
-          coverImagePrompt: { type: Type.STRING, description: "Kitap kapağı için görsel istemi" },
-          pages: {
-            type: Type.ARRAY,
-            description: "Hikayenin sayfaları (toplam 5 adet)",
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                pageNumber: { type: Type.INTEGER },
-                text: { type: Type.STRING, description: "Sayfanın Türkçe metni" },
-                imagePrompt: { type: Type.STRING, description: "Sayfanın İngilizce görsel istemi (prompt)" }
-              },
-              required: ["pageNumber", "text", "imagePrompt"]
-            }
-          }
-        },
-        required: ["title", "summary", "coverImagePrompt", "pages"]
-      }
-    }
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+  const response = await fetch(`${baseUrl}/api/generate-story`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
   });
 
-  if (response.text) {
-    return JSON.parse(response.text) as StoryData;
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Masal oluşturulamadı.");
   }
-  throw new Error("Masal oluşturulamadı.");
+
+  return await response.json() as StoryData;
 };
 
 export const generateIllustration = async (prompt: string): Promise<string> => {
   try {
-    // Using Nano Banana for fast generation
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
-      contents: {
-        parts: [{ text: prompt }]
-      },
-      config: {
-        imageConfig: {
-          aspectRatio: "1:1", 
-        }
-      }
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+    const response = await fetch(`${baseUrl}/api/generate-illustration`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
     });
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Görsel oluşturulamadı.");
     }
-    throw new Error("No image data found");
+
+    const data = await response.json();
+    return data.image;
   } catch (error) {
     console.error("Image generation error:", error);
+    // Keep the existing fallback behavior to ensure the app doesn't break if an image fails
     return `https://picsum.photos/512/512?blur=2&random=${Math.random()}`;
   }
 };
@@ -156,28 +70,20 @@ export const decodeBase64 = (base64: string) => {
 };
 
 export const generateSpeech = async (text: string): Promise<string> => {
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text: text }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Kore' }, // 'Kore' has a nice storytelling tone
-          },
-        },
-      },
-    });
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+  const response = await fetch(`${baseUrl}/api/generate-speech`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
 
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!base64Audio) throw new Error("No audio data returned");
-    
-    return base64Audio;
-  } catch (error) {
-    console.error("TTS Error:", error);
-    throw error;
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Seslendirme oluşturulamadı.");
   }
+
+  const data = await response.json();
+  return data.audio;
 };
 
 // Convert AudioBuffer to WAV Blob
