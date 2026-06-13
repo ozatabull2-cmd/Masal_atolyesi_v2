@@ -173,8 +173,8 @@ app.post('/api/generate-speech', async (req, res) => {
 
         const request = {
             input: { text: text },
-            // Turkish Wavenet Voice
-            voice: { languageCode: 'tr-TR', name: 'tr-TR-Wavenet-E' },
+            // Turkish Wavenet Voice (Female)
+            voice: { languageCode: 'tr-TR', name: 'tr-TR-Wavenet-A' },
             audioConfig: { audioEncoding: 'MP3' },
         };
 

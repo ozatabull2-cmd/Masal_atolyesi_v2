@@ -136,9 +136,13 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const stopAudio = () => {
     if (audioElementRef.current) {
       try {
+        audioElementRef.current.oncanplaythrough = null;
+        audioElementRef.current.onerror = null;
+        audioElementRef.current.onended = null;
         audioElementRef.current.pause();
         audioElementRef.current.currentTime = 0;
-        audioElementRef.current.onended = null;
+        audioElementRef.current.removeAttribute('src'); // clean src completely
+        audioElementRef.current.load(); // abort any pending downloads
       } catch(e) { /* ignore */ }
       audioElementRef.current = null;
     }
@@ -153,24 +157,27 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     setAudioLoading(true);
     try {
         const audio = new Audio(`data:audio/mpeg;base64,${base64Data}`);
+        audioElementRef.current = audio; // Set ref immediately before async events
         
         audio.onended = () => {
+            if (audioElementRef.current !== audio) return;
             setIsAudioPlaying(false);
             handleNext();
         };
         
         audio.oncanplaythrough = () => {
+            if (audioElementRef.current !== audio) return; // Prevent ghost playback
             setAudioLoading(false);
             audio.play().catch(e => console.error("Playback failed", e));
             setIsAudioPlaying(true);
         };
         
         audio.onerror = () => {
+            if (audioElementRef.current !== audio) return;
             console.error("Audio playback error");
             setAudioLoading(false);
         };
         
-        audioElementRef.current = audio;
         audio.load();
     } catch (error) {
         console.error("Failed to setup audio", error);

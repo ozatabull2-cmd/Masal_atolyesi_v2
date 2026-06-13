@@ -259,6 +259,9 @@ function App() {
         setLoadingProgress((completedTasks / totalTasks) * 100);
       };
 
+      // Delay helper function
+      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
       // Generate Cover Image first
       let coverUrl = "";
       try {
@@ -268,10 +271,8 @@ function App() {
           console.error("Failed to generate cover image", e);
       } finally {
           updateProgress();
+          await delay(10000); // Always wait 10s after an image request, even if it failed
       }
-
-      // Delay helper function
-      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
       // Generate Page Images and Audio Sequentially to avoid rate limits
       const pagesWithAssets = [];
@@ -283,12 +284,11 @@ function App() {
           try {
               const fullPrompt = `Children's storybook illustration, colorful whimsical digital illustration, cute child character. Scene must match the text exactly: ${page.imagePrompt}. No photorealistic image, no stock photo, no landscape photo, no dark realistic photo, consistent character appearance.`;
               imageUrl = await generateIllustration(fullPrompt);
-              // Wait 10 seconds to avoid Vertex AI Image Quota limit (429)
-              await delay(10000);
           } catch (e) {
               console.error(`Failed to generate image for page ${page.pageNumber}`, e);
           } finally {
               updateProgress();
+              await delay(10000); // Always wait 10s after an image request
           }
 
           // Sequential Audio Task
