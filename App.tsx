@@ -262,7 +262,8 @@ function App() {
       // Generate Cover Image first
       let coverUrl = "";
       try {
-          coverUrl = await generateIllustration(`${generatedStory.coverImagePrompt} . Cinematic lighting, highly detailed cover art, title space at top.`);
+          const coverPrompt = `Children's storybook cover illustration, colorful whimsical digital illustration, cute characters. Scene: ${generatedStory.coverImagePrompt}. No photorealistic image, no stock photo, no landscape photo, no dark realistic photo. Title space at top.`;
+          coverUrl = await generateIllustration(coverPrompt);
       } catch (e) {
           console.error("Failed to generate cover image", e);
       } finally {
@@ -277,7 +278,7 @@ function App() {
 
           // Sequential Image Task
           try {
-              const fullPrompt = `${page.imagePrompt} . High quality, children's book illustration, warm lighting, 4k, detailed.`;
+              const fullPrompt = `Children's storybook illustration, colorful whimsical digital illustration, cute child character. Scene must match the text exactly: ${page.imagePrompt}. No photorealistic image, no stock photo, no landscape photo, no dark realistic photo, consistent character appearance.`;
               imageUrl = await generateIllustration(fullPrompt);
           } catch (e) {
               console.error(`Failed to generate image for page ${page.pageNumber}`, e);

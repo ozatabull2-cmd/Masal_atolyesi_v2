@@ -175,7 +175,7 @@ app.post('/api/generate-speech', async (req, res) => {
             input: { text: text },
             // Turkish Wavenet Voice
             voice: { languageCode: 'tr-TR', name: 'tr-TR-Wavenet-E' },
-            audioConfig: { audioEncoding: 'MP3' },
+            audioConfig: { audioEncoding: 'LINEAR16', sampleRateHertz: 24000 },
         };
 
         const [response] = await ttsClient.synthesizeSpeech(request);
