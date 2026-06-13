@@ -115,29 +115,11 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   const totalPages = story.pages.length + 1; // Cover + Story Pages
 
-  // Audio Context Ref
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  // Native HTML5 Audio Element Ref for MP3 playback
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
-
-
-  // Initialize Audio Context on Mount/User Interaction
+  // Stop playback when visibility changes
   useEffect(() => {
-    const initAudio = () => {
-         if (!audioContextRef.current) {
-            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
-        }
-    };
-    initAudio();
-    
-    const resumeAudio = async () => {
-        if (audioContextRef.current?.state === 'suspended') {
-            await audioContextRef.current.resume();
-        }
-    };
-    window.addEventListener('click', resumeAudio, { once: true });
-    window.addEventListener('touchstart', resumeAudio, { once: true });
-
     const handleVisibilityChange = () => {
         if (document.visibilityState === 'hidden') {
             stopAudio();
@@ -148,20 +130,17 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     return () => {
         stopAudio();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
-        if (audioContextRef.current) {
-            audioContextRef.current.close();
-            audioContextRef.current = null;
-        }
     };
   }, []);
 
   const stopAudio = () => {
-    if (audioSourceRef.current) {
+    if (audioElementRef.current) {
       try {
-        audioSourceRef.current.onended = null;
-        audioSourceRef.current.stop();
+        audioElementRef.current.pause();
+        audioElementRef.current.currentTime = 0;
+        audioElementRef.current.onended = null;
       } catch(e) { /* ignore */ }
-      audioSourceRef.current = null;
+      audioElementRef.current = null;
     }
     setIsAudioPlaying(false);
   };
@@ -173,34 +152,28 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
     setAudioLoading(true);
     try {
-        if (!audioContextRef.current) {
-            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
-        }
-        if (audioContextRef.current.state === 'suspended') {
-            await audioContextRef.current.resume();
-        }
-
-        const buffer = await decodeAudioData(
-          decodeBase64(base64Data),
-          audioContextRef.current,
-          24000,
-          1
-        );
+        const audio = new Audio(`data:audio/mpeg;base64,${base64Data}`);
         
-        const source = audioContextRef.current.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContextRef.current.destination);
-        source.onended = () => {
+        audio.onended = () => {
             setIsAudioPlaying(false);
             handleNext();
         };
         
-        audioSourceRef.current = source;
-        source.start(0);
-        setIsAudioPlaying(true);
+        audio.oncanplaythrough = () => {
+            setAudioLoading(false);
+            audio.play().catch(e => console.error("Playback failed", e));
+            setIsAudioPlaying(true);
+        };
+        
+        audio.onerror = () => {
+            console.error("Audio playback error");
+            setAudioLoading(false);
+        };
+        
+        audioElementRef.current = audio;
+        audio.load();
     } catch (error) {
-        console.error("Failed to play audio", error);
-    } finally {
+        console.error("Failed to setup audio", error);
         setAudioLoading(false);
     }
   };
@@ -352,63 +325,41 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
 
 
-  // Audio Download Helper
+  // Native MP3 Audio Download Helper
   const generateAudio = async () => {
     setIsDownloadingAudio(true);
     setTimeout(async () => {
         try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
+           const byteArrays = [];
+           for (const page of story.pages) {
+               if (page.audioBase64) {
+                   const binaryString = atob(page.audioBase64);
+                   const len = binaryString.length;
+                   const bytes = new Uint8Array(len);
+                   for (let i = 0; i < len; i++) {
+                       bytes[i] = binaryString.charCodeAt(i);
+                   }
+                   byteArrays.push(bytes);
+               }
+           }
 
-          // 1. Collect and decode all audio chunks
-          const audioBuffers: AudioBuffer[] = [];
-          for (const page of story.pages) {
-            if (page.audioBase64) {
-              const buffer = await decodeAudioData(
-                decodeBase64(page.audioBase64),
-                ctx,
-                24000,
-                1
-              );
-              audioBuffers.push(buffer);
-            }
-          }
+           if (byteArrays.length === 0) {
+               alert("İndirilecek ses bulunamadı.");
+               setIsDownloadingAudio(false);
+               return;
+           }
 
-          if (audioBuffers.length === 0) {
-            alert("İndirilecek ses bulunamadı.");
-            setIsDownloadingAudio(false);
-            return;
-          }
+           // Simply merge the binary data of MP3 blobs
+           const mergedBlob = new Blob(byteArrays, { type: 'audio/mpeg' });
+           const url = URL.createObjectURL(mergedBlob);
+           const safeFileName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+           const file = new File([mergedBlob], `${safeFileName}_Sesli_Masal.mp3`, { type: 'audio/mpeg' });
 
-          // 2. Calculate total length
-          const totalLength = audioBuffers.reduce((acc, buf) => acc + buf.length, 0);
-          
-          // 3. Create merged buffer
-          const mergedBuffer = ctx.createBuffer(
-            1, 
-            totalLength, 
-            audioBuffers[0].sampleRate
-          );
-          const channelData = mergedBuffer.getChannelData(0);
+           setReadyAudioFile(file);
+           setReadyAudioUrl(url);
 
-          let offset = 0;
-          for (const buf of audioBuffers) {
-            channelData.set(buf.getChannelData(0), offset);
-            offset += buf.length;
-          }
-
-          // 4. Convert to WAV Blob
-          const wavBlob = audioBufferToWav(mergedBuffer);
-          const url = URL.createObjectURL(wavBlob);
-          const safeFileName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-          const file = new File([wavBlob], `${safeFileName}_Sesli_Masal.wav`, { type: 'audio/wav' });
-
-          setReadyAudioFile(file);
-          setReadyAudioUrl(url);
-          
-          ctx.close();
-
-          setModalType('audio');
-          setShowDownloadModal(true);
+           setModalType('audio');
+           setShowDownloadModal(true);
 
         } catch (e) {
           console.error("Audio Download Error", e);

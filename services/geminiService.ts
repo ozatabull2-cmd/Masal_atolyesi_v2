@@ -34,8 +34,7 @@ export const generateIllustration = async (prompt: string): Promise<string> => {
     return data.image;
   } catch (error) {
     console.error("Image generation error:", error);
-    // Keep the existing fallback behavior to ensure the app doesn't break if an image fails
-    return `https://picsum.photos/512/512?blur=2&random=${Math.random()}`;
+    return ""; // Return empty string so UI doesn't show fake stock photo
   }
 };
 

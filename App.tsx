@@ -270,6 +270,9 @@ function App() {
           updateProgress();
       }
 
+      // Delay helper function
+      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
       // Generate Page Images and Audio Sequentially to avoid rate limits
       const pagesWithAssets = [];
       for (const page of generatedStory.pages) {
@@ -280,6 +283,8 @@ function App() {
           try {
               const fullPrompt = `Children's storybook illustration, colorful whimsical digital illustration, cute child character. Scene must match the text exactly: ${page.imagePrompt}. No photorealistic image, no stock photo, no landscape photo, no dark realistic photo, consistent character appearance.`;
               imageUrl = await generateIllustration(fullPrompt);
+              // Wait 10 seconds to avoid Vertex AI Image Quota limit (429)
+              await delay(10000);
           } catch (e) {
               console.error(`Failed to generate image for page ${page.pageNumber}`, e);
           } finally {
