@@ -354,19 +354,15 @@ function App() {
                     <Sparkles className="w-5 h-5 text-blue-300 animate-pulse drop-shadow-md" />
                   </button>
                 )}
-                {isAdminUser ? (
-                  <BookForm 
-                      onSubmit={handleFormSubmit} 
-                      isSubmitting={false} 
-                      remainingQuota={remainingQuota}
-                      nextResetTime={nextResetTime}
-                      onApplyPromo={handleApplyPromo}
-                      isAdmin={userRole === 'admin'}
-                      userName={userName}
-                  />
-                ) : (
-                  <MaintenanceView hasSavedStories={savedStories.length > 0} />
-                )}
+                <BookForm 
+                    onSubmit={handleFormSubmit} 
+                    isSubmitting={false} 
+                    remainingQuota={remainingQuota}
+                    nextResetTime={nextResetTime}
+                    onApplyPromo={handleApplyPromo}
+                    isAdmin={userRole === 'admin'}
+                    userName={userName}
+                />
             </div>
         );
       
