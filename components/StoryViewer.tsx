@@ -572,9 +572,11 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
                     className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                 />
             ) : (
-                <div className="flex flex-col items-center justify-center text-slate-400">
-                    <div className="animate-pulse bg-slate-200 w-32 h-32 rounded-full mb-4"></div>
-                    <p>Resim Yükleniyor...</p>
+                <div className="flex flex-col items-center justify-center text-slate-400 h-full p-6 text-center">
+                    <div className="bg-orange-100 text-orange-400 w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <p className="text-sm font-medium">Bu sayfa için görsel oluşturulamadı. Masal metniyle devam edebilirsiniz.</p>
                 </div>
             )}
              

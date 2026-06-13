@@ -31,6 +31,10 @@ export const generateIllustration = async (prompt: string): Promise<string> => {
     }
 
     const data = await response.json();
+    if (data.blocked) {
+      console.warn("Safety filter prevented image generation.");
+      return "";
+    }
     return data.image;
   } catch (error) {
     console.error("Image generation error:", error);

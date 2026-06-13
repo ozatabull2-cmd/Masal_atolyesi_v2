@@ -154,10 +154,11 @@ app.post('/api/generate-illustration', async (req, res) => {
 
         if (response.generatedImages && response.generatedImages.length > 0) {
             const base64Image = response.generatedImages[0].image.imageBytes;
-            return res.status(200).json({ image: `data:image/png;base64,${base64Image}` });
+            return res.status(200).json({ image: `data:image/png;base64,${base64Image}`, blocked: false });
         }
         
-        return res.status(500).json({ error: "Görsel verisi alınamadı." });
+        console.warn(`Imagen safety filter blocked this prompt: ${prompt.substring(0, 100)}...`);
+        return res.status(200).json({ image: "", blocked: true, reason: "SAFETY_FILTER" });
     } catch (error) {
         console.error("Image generation error:", error);
         return res.status(500).json({ error: "Görsel oluşturulurken bir hata oluştu." });

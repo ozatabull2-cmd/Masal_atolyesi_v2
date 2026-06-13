@@ -265,7 +265,13 @@ function App() {
       // Generate Cover Image first
       let coverUrl = "";
       try {
-          const coverPrompt = `Children's storybook cover illustration, colorful whimsical digital illustration, cute characters. Scene: ${generatedStory.coverImagePrompt}. No photorealistic image, no stock photo, no landscape photo, no dark realistic photo. Title space at top.`;
+          // Make prompt extremely safe to avoid Vertex AI Image Safety Blocks
+          const safeCoverPrompt = generatedStory.coverImagePrompt
+            .replace(/çocuk/gi, "young storybook hero")
+            .replace(/uzaylı/gi, "friendly space creature")
+            .replace(/yaratık/gi, "cute visitor from the stars");
+            
+          const coverPrompt = `Safe, cheerful, educational, non-threatening, cozy, playful children's storybook cover illustration. Colorful whimsical digital drawing. Scene: ${safeCoverPrompt}. No fear, no danger, no realistic human child, no photorealism, no stock photo, no dark imagery. Title space at top.`;
           coverUrl = await generateIllustration(coverPrompt);
       } catch (e) {
           console.error("Failed to generate cover image", e);
@@ -282,7 +288,15 @@ function App() {
 
           // Sequential Image Task
           try {
-              const fullPrompt = `Children's storybook illustration, colorful whimsical digital illustration, cute child character. Scene must match the text exactly: ${page.imagePrompt}. No photorealistic image, no stock photo, no landscape photo, no dark realistic photo, consistent character appearance.`;
+              // Replace potentially problematic keywords
+              const safeImagePrompt = page.imagePrompt
+                .replace(/çocuk/gi, "young storybook hero")
+                .replace(/uzaylı/gi, "friendly space creature")
+                .replace(/yaratık/gi, "cute visitor from the stars")
+                .replace(/korkunç/gi, "silly")
+                .replace(/canavar/gi, "fluffy imaginary friend");
+
+              const fullPrompt = `Safe, cheerful, educational, non-threatening, cozy, playful children's storybook illustration. Colorful whimsical digital drawing, little hero character. Scene: ${safeImagePrompt}. No fear, no danger, no realistic human child, no photorealism, no stock photo, no dark imagery. Consistent style.`;
               imageUrl = await generateIllustration(fullPrompt);
           } catch (e) {
               console.error(`Failed to generate image for page ${page.pageNumber}`, e);
