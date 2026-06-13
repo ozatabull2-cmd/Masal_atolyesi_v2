@@ -1,9 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import { GoogleGenAI, Type, Modality } from '@google/genai';
+import textToSpeech from '@google-cloud/text-to-speech';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+const ttsClient = new textToSpeech.TextToSpeechClient();
 
 if (!process.env.GOOGLE_CLOUD_PROJECT) {
     console.error("FATAL ERROR: GOOGLE_CLOUD_PROJECT is not defined in environment variables. Application cannot start.");
@@ -138,16 +141,20 @@ app.post('/api/generate-illustration', async (req, res) => {
         }
 
         const ai = getAIClient();
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-image",
-            contents: { parts: [{ text: prompt }] },
-            config: { imageConfig: { aspectRatio: "1:1" } }
+        // Use Imagen 3 for Vertex AI
+        const response = await ai.models.generateImages({
+            model: 'imagen-3.0-generate-001',
+            prompt: prompt,
+            config: {
+                numberOfImages: 1,
+                aspectRatio: '1:1',
+                outputMimeType: 'image/png'
+            }
         });
 
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-            if (part.inlineData) {
-                return res.status(200).json({ image: `data:image/png;base64,${part.inlineData.data}` });
-            }
+        if (response.generatedImages && response.generatedImages.length > 0) {
+            const base64Image = response.generatedImages[0].image.imageBytes;
+            return res.status(200).json({ image: `data:image/png;base64,${base64Image}` });
         }
         
         return res.status(500).json({ error: "Görsel verisi alınamadı." });
@@ -164,22 +171,15 @@ app.post('/api/generate-speech', async (req, res) => {
             return res.status(400).json({ error: "Geçersiz istek. 'text' alanı zorunludur." });
         }
 
-        const ai = getAIClient();
-        const response = await ai.models.generateContent({
-            model: "gemini-3.1-flash-tts-preview",
-            contents: [{ parts: [{ text }] }],
-            config: {
-                responseModalities: [Modality.AUDIO],
-                speechConfig: {
-                    voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
-                },
-            },
-        });
+        const request = {
+            input: { text: text },
+            // Turkish Wavenet Voice
+            voice: { languageCode: 'tr-TR', name: 'tr-TR-Wavenet-E' },
+            audioConfig: { audioEncoding: 'MP3' },
+        };
 
-        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (!base64Audio) {
-            return res.status(500).json({ error: "Ses verisi alınamadı." });
-        }
+        const [response] = await ttsClient.synthesizeSpeech(request);
+        const base64Audio = response.audioContent.toString('base64');
         
         return res.status(200).json({ audio: base64Audio });
     } catch (error) {

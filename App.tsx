@@ -259,49 +259,43 @@ function App() {
         setLoadingProgress((completedTasks / totalTasks) * 100);
       };
 
-      // Generate Cover Image
-      const coverPromise = generateIllustration(`${generatedStory.coverImagePrompt} . Cinematic lighting, highly detailed cover art, title space at top.`)
-        .then(url => {
-            updateProgress();
-            return url;
-        });
+      // Generate Cover Image first
+      let coverUrl = "";
+      try {
+          coverUrl = await generateIllustration(`${generatedStory.coverImagePrompt} . Cinematic lighting, highly detailed cover art, title space at top.`);
+      } catch (e) {
+          console.error("Failed to generate cover image", e);
+      } finally {
+          updateProgress();
+      }
 
-      // Generate Page Images and Audio
-      const pagesPromise = Promise.all(
-        generatedStory.pages.map(async (page) => {
-            let imageUrl = page.imageUrl;
-            let audioBase64 = page.audioBase64;
+      // Generate Page Images and Audio Sequentially to avoid rate limits
+      const pagesWithAssets = [];
+      for (const page of generatedStory.pages) {
+          let imageUrl = page.imageUrl;
+          let audioBase64 = page.audioBase64;
 
-            // Image Task
-            const imageTask = async () => {
-                try {
-                    const fullPrompt = `${page.imagePrompt} . High quality, children's book illustration, warm lighting, 4k, detailed.`;
-                    imageUrl = await generateIllustration(fullPrompt);
-                } catch (e) {
-                    console.error(`Failed to generate image for page ${page.pageNumber}`, e);
-                } finally {
-                    updateProgress();
-                }
-            };
+          // Sequential Image Task
+          try {
+              const fullPrompt = `${page.imagePrompt} . High quality, children's book illustration, warm lighting, 4k, detailed.`;
+              imageUrl = await generateIllustration(fullPrompt);
+          } catch (e) {
+              console.error(`Failed to generate image for page ${page.pageNumber}`, e);
+          } finally {
+              updateProgress();
+          }
 
-            // Audio Task
-            const audioTask = async () => {
-                try {
-                   audioBase64 = await generateSpeech(page.text);
-                } catch (e) {
-                   console.error(`Failed to generate audio for page ${page.pageNumber}`, e);
-                } finally {
-                   updateProgress();
-                }
-            };
+          // Sequential Audio Task
+          try {
+             audioBase64 = await generateSpeech(page.text);
+          } catch (e) {
+             console.error(`Failed to generate audio for page ${page.pageNumber}`, e);
+          } finally {
+             updateProgress();
+          }
 
-            await Promise.all([imageTask(), audioTask()]);
-
-            return { ...page, imageUrl, audioBase64 };
-        })
-      );
-
-      const [coverUrl, pagesWithAssets] = await Promise.all([coverPromise, pagesPromise]);
+          pagesWithAssets.push({ ...page, imageUrl, audioBase64 });
+      }
 
       const finalStory = { 
         ...generatedStory, 
