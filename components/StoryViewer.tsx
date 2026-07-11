@@ -31,7 +31,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const [readyAudioFile, setReadyAudioFile] = useState<File | null>(null);
 
   const handleShare = async () => {
-    const shareText = `Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk! ✨ Çocuklar için sihirli masallar yazan bu harika uygulamayı sen de dene: https://chat.whatsapp.com/JJFgs0neRkLCtm0OAHzOeK`;
+    const shareText = `Çocuklara özel masal oluşturma uygulaması buldum ✨ Hemen incele: https://chat.whatsapp.com/JJFgs0neRkLCtm0OAHzOeK`;
     
     let filesToShare: File[] = [];
     
