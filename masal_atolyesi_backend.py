@@ -81,15 +81,19 @@ def generate_masal_sesi(req: AudioRequest):
     Model: gemini-3.1-flash-tts-preview
     """
     try:
+        # Doğal, sıcak ve vurgulu bir insan sesi elde etmek için ön talimat
+        system_instruction = "Sen profesyonel bir çocuk masalı anlatıcısısın. Hikayeyi son derece doğal, sıcak, vurgulu ve gerçek bir insan gibi seslendir."
+        
         response = client.models.generate_content(
             model='gemini-3.1-flash-tts-preview',
             contents=req.text,
             config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
                 response_modalities=["AUDIO"],
                 speech_config=types.SpeechConfig(
                     voice_config=types.VoiceConfig(
                         prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                            voice_name="Aoede" # Çocuk masalları için uyumlu kadın sesi
+                            voice_name="Callirrhoe" # Doğal ve insansı Gemini 3.1 sesi
                         )
                     )
                 )
