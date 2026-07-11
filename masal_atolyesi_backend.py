@@ -100,6 +100,9 @@ def generate_masal_sesi(req: AudioRequest):
             )
         )
         
+        # Gerçek API yanıtından model ismini/versiyonunu logluyoruz
+        print(f"[DEBUG - TTS] Raw response model version: {response.model_version}")
+        
         for part in response.candidates[0].content.parts:
             if part.inline_data and part.inline_data.mime_type.startswith("audio/"):
                 b64_audio = base64.b64encode(part.inline_data.data).decode('utf-8')
