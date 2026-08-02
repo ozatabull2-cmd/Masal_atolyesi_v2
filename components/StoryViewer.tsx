@@ -625,6 +625,25 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
              {/* <div className="absolute inset-0 opacity-30 pointer-events-none" style={{backgroundImage: 'url("https://www.transparenttextures.com/patterns/cream-paper.png")'}}></div> */}
         </div>
 
+      {/* Bottom Pagination & Controls Footer */}
+      <div className="flex justify-between items-center mt-6 px-6 py-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-md border border-slate-100 max-w-sm mx-auto">
+        <button 
+          onClick={handlePrev} 
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 rounded-full font-bold text-xs transition"
+        >
+          <ArrowLeft className="w-4 h-4" /> Önceki Sayfa
+        </button>
+        
+        <span className="font-bold text-indigo-900 text-xs tracking-wider">
+          {currentPage} / {story.pages.length}
+        </span>
+
+        <button 
+          onClick={handleNext} 
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-xs shadow transition"
+        >
+          Sonraki Sayfa <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {showDownloadModal && (
