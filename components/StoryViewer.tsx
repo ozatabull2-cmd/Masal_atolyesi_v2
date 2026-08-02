@@ -32,7 +32,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   const handleShare = async () => {
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
-    const shareText = `✨ Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk!\n\nÇocuğunuza özel masallar oluşturmak için tıklayın: ${appUrl}`;
+    const shareText = `Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk! Siz de çocuğunuza özel masal oluşturmak için tıklayın: ${appUrl}`;
 
     if (navigator.share) {
       try {
@@ -47,8 +47,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
       }
     }
 
-    // Direct WhatsApp Fallback if Web Share is unavailable
-    const encodedText = encodeURIComponent(`${shareText}\n${appUrl}`);
+    // Direct WhatsApp Fallback
+    const encodedText = encodeURIComponent(shareText);
     window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
   };
 
