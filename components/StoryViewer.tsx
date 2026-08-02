@@ -34,26 +34,33 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   const handleShare = async () => {
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
-    const shareText = `Ankara Çocuk Etkinlikler'de "${story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}`;
+    const playStoreUrl = "https://play.google.com/store/apps/details?id=com.ankara.cocuk.etkinlikler";
+    const shareText = `Ankara Çocuk Etkinlikler’de "${story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}\n\nTüm Ankara etkinlikleri için uygulamamızı ücretsiz indirin: 👉 ${playStoreUrl}`;
 
-    // 1. Android Native Share Bridge (if running updated WebViewActivity)
+    // 1. Android Native Share Bridge
     if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
       (window as any).AndroidShare.shareText(shareText, "Masalı Paylaş");
       return;
     }
 
-    // 2. Web Share API (works on supported mobile browsers & WebViews)
+    // 2. Web Share API
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title: story.title, text: shareText, url: appUrl });
         return;
       } catch (err) {
-        // Fallback if cancelled or rejected
+        // Fallback
       }
     }
 
-    // 3. Standard HTTPS WhatsApp Share (works on ALL phones and WebViews without intent errors)
-    window.location.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    // 3. Clipboard fallback with toast
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 3000);
+    } catch {
+      window.prompt("Aşağıdaki metni kopyalayıp paylaşabilirsiniz:", shareText);
+    }
   };
 
   // Feedback State
@@ -429,17 +436,24 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
            <div className="absolute inset-0 bg-black opacity-10 pointer-events-none rounded-r-3xl rounded-l-lg z-20"></div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-2.5 w-full max-w-sm px-2 relative z-30">
+        <div className="mt-4 grid grid-cols-2 gap-2.5 w-full max-w-sm px-2 relative z-30">
              <button 
                 onClick={handleNext}
-                className="w-full bg-white text-indigo-600 px-5 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
+                className="col-span-2 bg-white text-indigo-600 px-5 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
                 Kitabı Aç <ArrowRight className="w-4 h-4" />
               </button>
 
               <button 
+                onClick={handleShare}
+                className="col-span-1 bg-pink-500 text-white px-3 py-2.5 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-1.5 text-xs cursor-pointer active:scale-95"
+              >
+                <Share2 className="w-4 h-4" /> Paylaş
+              </button>
+
+              <button 
                 onClick={onReset}
-                className="w-full bg-yellow-400 text-indigo-900 px-4 py-2.5 rounded-full font-bold shadow-lg hover:bg-yellow-300 transition flex items-center justify-center gap-2 text-xs cursor-pointer"
+                className="col-span-1 bg-yellow-400 text-indigo-900 px-3 py-2.5 rounded-full font-bold shadow-lg hover:bg-yellow-300 transition flex items-center justify-center gap-1.5 text-xs cursor-pointer"
               >
                 <RefreshCcw className="w-4 h-4" /> Yeni Masal Yaz
               </button>
@@ -513,8 +527,15 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
                 <div className="flex gap-2 w-full">
                     <button
+                    onClick={handleShare}
+                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-3 rounded-xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg border border-pink-400 text-xs sm:text-sm cursor-pointer"
+                    >
+                    <Share2 className="w-4 h-4" /> Masalı Paylaş
+                    </button>
+
+                    <button
                     onClick={handleRestart}
-                    className="w-full bg-indigo-800/60 text-white px-3 py-3 rounded-xl font-bold hover:bg-indigo-700 transition flex items-center justify-center gap-1 shadow-lg border border-indigo-500 text-xs sm:text-sm"
+                    className="flex-1 bg-indigo-800/60 text-white px-3 py-3 rounded-xl font-bold hover:bg-indigo-700 transition flex items-center justify-center gap-1 shadow-lg border border-indigo-500 text-xs sm:text-sm cursor-pointer"
                     >
                     <RotateCcw className="w-4 h-4" /> En Başa Dön
                     </button>
