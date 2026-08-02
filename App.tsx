@@ -332,11 +332,13 @@ function App() {
 
       setStoryData(finalStory);
       await saveStory(finalStory);
+      localStorage.removeItem('masal_active_generation');
       
       setAppState(AppState.Reading);
 
     } catch (err: any) {
       console.error(err);
+      localStorage.removeItem('masal_active_generation');
       setErrorMsg("Üzgünüz, masalı oluştururken sihirli bir hata oluştu. Lütfen tekrar deneyin.");
       setAppState(AppState.Error);
     }
