@@ -80,6 +80,11 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
                         (window as any).AndroidShare.shareText(shareText, "Masalı Paylaş");
                         return;
                       }
+                      const ua = navigator.userAgent || '';
+                      if (/Android/i.test(ua)) {
+                        window.location.href = `intent://#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(shareText)};end`;
+                        return;
+                      }
                       if (typeof navigator !== 'undefined' && navigator.share) {
                         try {
                           await navigator.share({ title: saved.story.title, text: shareText, url: appUrl });
@@ -88,7 +93,7 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
                       }
                       try {
                         await navigator.clipboard.writeText(shareText);
-                        alert("✅ Paylaşım metni kopyalandı! Arkadaşlarına yapıştırarak gönderebilirsin.");
+                        alert("✅ Paylaşım metni kopyalandı!");
                       } catch {
                         window.prompt("Aşağıdaki metni kopyalayıp arkadaşlarınla paylaşabilirsin:", shareText);
                       }

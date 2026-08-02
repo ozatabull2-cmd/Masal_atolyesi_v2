@@ -42,23 +42,31 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
       return;
     }
 
-    // 2. Web Share API (works on modern browsers)
+    // 2. Android intent:// URL - opens native Android share dialog
+    // Works with OLD APK because WebView already intercepts intent:// URLs
+    const ua = navigator.userAgent || '';
+    if (/Android/i.test(ua)) {
+      const intentUrl = `intent://#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(shareText)};end`;
+      window.location.href = intentUrl;
+      return;
+    }
+
+    // 3. Web Share API (works on non-Android modern browsers)
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title: story.title, text: shareText, url: appUrl });
         return;
       } catch (err) {
-        // User cancelled or API not fully supported - fall through
+        // User cancelled - fall through
       }
     }
 
-    // 3. Clipboard fallback (works everywhere, no navigation away from app)
+    // 4. Clipboard fallback
     try {
       await navigator.clipboard.writeText(shareText);
       setShareToast(true);
       setTimeout(() => setShareToast(false), 3000);
     } catch {
-      // 4. Final fallback: prompt with text
       window.prompt("Aşağıdaki metni kopyalayıp arkadaşlarınla paylaşabilirsin:", shareText);
     }
   };
