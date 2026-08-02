@@ -36,39 +36,24 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
     const shareText = `Ankara Çocuk Etkinlikler'de "${story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}`;
 
-    // 1. Android Native Share Bridge (works after APK rebuild)
+    // 1. Android Native Share Bridge (if running updated WebViewActivity)
     if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
       (window as any).AndroidShare.shareText(shareText, "Masalı Paylaş");
       return;
     }
 
-    // 2. Android intent:// URL - opens native Android share dialog
-    // Works with OLD APK because WebView already intercepts intent:// URLs
-    const ua = navigator.userAgent || '';
-    if (/Android/i.test(ua)) {
-      const intentUrl = `intent://#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(shareText)};end`;
-      window.location.href = intentUrl;
-      return;
-    }
-
-    // 3. Web Share API (works on non-Android modern browsers)
+    // 2. Web Share API (works on supported mobile browsers & WebViews)
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title: story.title, text: shareText, url: appUrl });
         return;
       } catch (err) {
-        // User cancelled - fall through
+        // Fallback if cancelled or rejected
       }
     }
 
-    // 4. Clipboard fallback
-    try {
-      await navigator.clipboard.writeText(shareText);
-      setShareToast(true);
-      setTimeout(() => setShareToast(false), 3000);
-    } catch {
-      window.prompt("Aşağıdaki metni kopyalayıp arkadaşlarınla paylaşabilirsin:", shareText);
-    }
+    // 3. Standard HTTPS WhatsApp Share (works on ALL phones and WebViews without intent errors)
+    window.location.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
   };
 
   // Feedback State

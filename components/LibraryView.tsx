@@ -80,23 +80,13 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
                         (window as any).AndroidShare.shareText(shareText, "Masalı Paylaş");
                         return;
                       }
-                      const ua = navigator.userAgent || '';
-                      if (/Android/i.test(ua)) {
-                        window.location.href = `intent://#Intent;action=android.intent.action.SEND;type=text/plain;S.android.intent.extra.TEXT=${encodeURIComponent(shareText)};end`;
-                        return;
-                      }
                       if (typeof navigator !== 'undefined' && navigator.share) {
                         try {
                           await navigator.share({ title: saved.story.title, text: shareText, url: appUrl });
                           return;
                         } catch (e) { /* fallback */ }
                       }
-                      try {
-                        await navigator.clipboard.writeText(shareText);
-                        alert("✅ Paylaşım metni kopyalandı!");
-                      } catch {
-                        window.prompt("Aşağıdaki metni kopyalayıp arkadaşlarınla paylaşabilirsin:", shareText);
-                      }
+                      window.location.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
                     }}
                     className="bg-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-pink-600 transition flex items-center gap-1 cursor-pointer active:scale-95"
                   >
