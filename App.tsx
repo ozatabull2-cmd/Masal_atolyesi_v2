@@ -242,6 +242,13 @@ function App() {
         decrementQuota();
       }
 
+      // Save initial story outline immediately to library so it is saved even if user leaves
+      await saveStory({
+        ...generatedStory,
+        coverImageUrl: '',
+        pages: generatedStory.pages.map(p => ({ ...p, imageUrl: '', audioBase64: '' }))
+      });
+
       // Set Cooldown Target (60 seconds from now)
       if (userRole !== 'admin') {
         setCooldownTarget(Date.now() + 60000);
