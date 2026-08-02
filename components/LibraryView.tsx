@@ -76,6 +76,10 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
                     onClick={async () => {
                       const appUrl = "https://masal-atolyesi-v2.vercel.app/";
                       const shareText = `Ankara Çocuk Etkinlikler'de "${saved.story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}`;
+                      if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
+                        (window as any).AndroidShare.shareText(shareText, "Masalı Paylaş");
+                        return;
+                      }
                       if (typeof navigator !== 'undefined' && navigator.share) {
                         try {
                           await navigator.share({ title: saved.story.title, text: shareText, url: appUrl });

@@ -34,6 +34,13 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
     const shareText = `Ankara Çocuk Etkinlikler'de "${story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}`;
 
+    // 1. Android Native Share Bridge (highest priority inside Android WebView)
+    if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
+      (window as any).AndroidShare.shareText(shareText, "Masalı Paylaş");
+      return;
+    }
+
+    // 2. Web Share API
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
@@ -47,7 +54,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
       }
     }
 
-    // Fallback if navigator.share fails or is not available on mobile WebView
+    // 3. Fallback: WhatsApp Direct Link
     const encodedText = encodeURIComponent(shareText);
     window.location.href = `https://api.whatsapp.com/send?text=${encodedText}`;
   };
@@ -128,31 +135,39 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     setAudioLoading(true);
     try {
         const audio = new Audio(`data:audio/mpeg;base64,${base64Data}`);
-        audioElementRef.current = audio; // Set ref immediately before async events
+        audioElementRef.current = audio;
         
         audio.onended = () => {
             if (audioElementRef.current !== audio) return;
             setIsAudioPlaying(false);
             handleNext();
         };
-        
-        audio.oncanplaythrough = () => {
-            if (audioElementRef.current !== audio) return; // Prevent ghost playback
-            setAudioLoading(false);
-            audio.play().catch(e => console.error("Playback failed", e));
-            setIsAudioPlaying(true);
-        };
-        
+
         audio.onerror = () => {
             if (audioElementRef.current !== audio) return;
-            console.error("Audio playback error");
             setAudioLoading(false);
+            setIsAudioPlaying(false);
         };
-        
-        audio.load();
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                if (audioElementRef.current === audio) {
+                    setAudioLoading(false);
+                    setIsAudioPlaying(true);
+                }
+            }).catch(e => {
+                console.warn("Playback prevented", e);
+                if (audioElementRef.current === audio) {
+                    setAudioLoading(false);
+                    setIsAudioPlaying(false);
+                }
+            });
+        }
     } catch (error) {
         console.error("Failed to setup audio", error);
         setAudioLoading(false);
+        setIsAudioPlaying(false);
     }
   };
 
