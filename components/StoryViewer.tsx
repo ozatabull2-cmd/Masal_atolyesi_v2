@@ -380,14 +380,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   // Render Cover
   if (currentPage === 0) {
     return (
-      <>
-      {shareToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] animate-fade-in pointer-events-none whitespace-nowrap">
-          <div className="bg-slate-900/90 backdrop-blur-md text-emerald-400 px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center gap-2 border border-slate-700/60">
-            📋 Paylaşım metni kopyalandı
-          </div>
-        </div>
-      )}
       <div 
         className="flex flex-col items-center justify-center min-h-[500px] max-h-[85vh] animate-fade-in w-full my-auto"
       >
@@ -435,6 +427,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
            <div className="absolute inset-0 bg-black opacity-10 pointer-events-none rounded-r-3xl rounded-l-lg z-20"></div>
         </div>
 
+        {shareToast && (
+          <div className="w-full max-w-sm px-2 mt-3 animate-fade-in z-30 text-center">
+            <div className="bg-indigo-900/95 text-yellow-200 p-3 rounded-2xl shadow-xl border border-indigo-400/40 text-xs font-semibold leading-relaxed">
+              📋 Paylaşım metni kopyalandı! Bu paylaşım linkini WhatsApp’ta, Instagram’da arkadaşlarınızla paylaşabilirsiniz.
+            </div>
+          </div>
+        )}
+
         <div className="mt-4 grid grid-cols-2 gap-2.5 w-full max-w-sm px-2 relative z-30">
              <button 
                 onClick={handleNext}
@@ -458,21 +458,12 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
               </button>
         </div>
       </div>
-      </>
     );
   }
 
   // Render Back Cover
   if (currentPage === totalPages) {
     return (
-        <>
-        {shareToast && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] animate-fade-in pointer-events-none whitespace-nowrap">
-            <div className="bg-slate-900/90 backdrop-blur-md text-emerald-400 px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center gap-2 border border-slate-700/60">
-              📋 Paylaşım metni kopyalandı
-            </div>
-          </div>
-        )}
         <div className="flex flex-col items-center justify-center min-h-[600px] animate-fade-in w-full"
         >
           <div className="relative w-full max-w-md min-h-[500px] bg-indigo-900 rounded-l-3xl rounded-r-lg shadow-2xl border-r-8 border-indigo-950 flex flex-col items-center justify-center p-8 text-center text-white overflow-hidden">
@@ -524,6 +515,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
 
 
+                {shareToast && (
+                  <div className="w-full mt-3 animate-fade-in z-30 text-center">
+                    <div className="bg-indigo-950/90 text-yellow-200 p-3 rounded-2xl shadow-xl border border-indigo-400/40 text-xs font-semibold leading-relaxed">
+                      📋 Paylaşım metni kopyalandı! Bu paylaşım linkini WhatsApp’ta, Instagram’da arkadaşlarınızla paylaşabilirsiniz.
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2 w-full">
                     <button
                     onClick={handleShare}
@@ -562,7 +561,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
             <ArrowLeft className="w-5 h-5" /> Geri Dön
           </button>
         </div>
-        </>
     );
   }
 
@@ -759,15 +757,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
           </div>
         </div>
       )}
-      {/* Share Toast Notification */}
-      {shareToast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] animate-fade-in pointer-events-none whitespace-nowrap">
-          <div className="bg-slate-900/90 backdrop-blur-md text-emerald-400 px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center gap-2 border border-slate-700/60">
-            📋 Paylaşım metni kopyalandı
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

@@ -212,9 +212,9 @@ app.post('/api/generate-speech', async (req, res) => {
 
         // Phonetic normalization for Turkish story onomatopoeia sounds
         const cleanTextForTTS = text
-            .replace(/v\s*[\-\s\.]*\s*ı\s*[\-\s\.]*\s*z\s*[\-\s\.]*\s*z+/gi, "vızzz")
-            .replace(/\bvızz+\b/gi, "vızzz")
-            .replace(/\bvız\b/gi, "vızz")
+            .replace(/\bv\s*[\-\s\.]*\s*[ıi]\s*[\-\s\.]*\s*z\s*[\-\s\.]*\s*z+\b/gi, "vızzz")
+            .replace(/\bv[ıi]z+\b/gi, "vızzz")
+            .replace(/\bv[ıi]z\b/gi, "vızz")
             .replace(/\bcık\s+cık\b/gi, "cık cık")
             .replace(/\bpat\s+pat\b/gi, "pat pat")
             .replace(/\bşırlı\b/gi, "şırıl")

@@ -74,10 +74,21 @@ export const decodeBase64 = (base64: string) => {
 
 export const generateSpeech = async (text: string): Promise<string> => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+  
+  // Clean onomatopoeia sounds like v i z z, v-i-z-z, vizz -> vızzz for Turkish TTS
+  const cleanText = text
+    .replace(/\bv\s*[\-\s\.]*\s*[ıi]\s*[\-\s\.]*\s*z\s*[\-\s\.]*\s*z+\b/gi, "vızzz")
+    .replace(/\bv[ıi]z+\b/gi, "vızzz")
+    .replace(/\bv[ıi]z\b/gi, "vızz")
+    .replace(/\bcık\s+cık\b/gi, "cık cık")
+    .replace(/\bpat\s+pat\b/gi, "pat pat")
+    .replace(/\bşırlı\b/gi, "şırıl")
+    .replace(/\bşırr+\b/gi, "şırıl şırıl");
+
   const response = await fetch(`${baseUrl}/api/generate-speech`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text: cleanText }),
   });
 
   if (!response.ok) {
