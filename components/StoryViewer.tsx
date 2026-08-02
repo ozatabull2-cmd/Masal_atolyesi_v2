@@ -382,9 +382,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     return (
       <>
       {shareToast && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-fade-in">
-          <div className="bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-2">
-            ✅ Paylaşım metni kopyalandı! Arkadaşlarına yapıştırarak gönderebilirsin.
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] animate-fade-in pointer-events-none whitespace-nowrap">
+          <div className="bg-slate-900/90 backdrop-blur-md text-emerald-400 px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center gap-2 border border-slate-700/60">
+            📋 Paylaşım metni kopyalandı
           </div>
         </div>
       )}
@@ -467,9 +467,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     return (
         <>
         {shareToast && (
-          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-fade-in">
-            <div className="bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-2">
-              ✅ Paylaşım metni kopyalandı! Arkadaşlarına yapıştırarak gönderebilirsin.
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] animate-fade-in pointer-events-none whitespace-nowrap">
+            <div className="bg-slate-900/90 backdrop-blur-md text-emerald-400 px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center gap-2 border border-slate-700/60">
+              📋 Paylaşım metni kopyalandı
             </div>
           </div>
         )}
@@ -761,9 +761,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
       )}
       {/* Share Toast Notification */}
       {shareToast && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-fade-in">
-          <div className="bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-2">
-            ✅ Paylaşım metni kopyalandı! Arkadaşlarına yapıştırarak gönderebilirsin.
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] animate-fade-in pointer-events-none whitespace-nowrap">
+          <div className="bg-slate-900/90 backdrop-blur-md text-emerald-400 px-4 py-2 rounded-full shadow-2xl font-bold text-xs flex items-center gap-2 border border-slate-700/60">
+            📋 Paylaşım metni kopyalandı
           </div>
         </div>
       )}
