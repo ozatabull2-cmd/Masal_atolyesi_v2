@@ -30,33 +30,37 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const [readyAudioUrl, setReadyAudioUrl] = useState<string | null>(null);
   const [readyAudioFile, setReadyAudioFile] = useState<File | null>(null);
 
+  const [shareToast, setShareToast] = useState(false);
+
   const handleShare = async () => {
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
     const shareText = `Ankara Çocuk Etkinlikler'de "${story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}`;
 
-    // 1. Android Native Share Bridge (highest priority inside Android WebView)
+    // 1. Android Native Share Bridge (works after APK rebuild)
     if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
       (window as any).AndroidShare.shareText(shareText, "Masalı Paylaş");
       return;
     }
 
-    // 2. Web Share API
+    // 2. Web Share API (works on modern browsers)
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({
-          title: story.title,
-          text: shareText,
-          url: appUrl
-        });
+        await navigator.share({ title: story.title, text: shareText, url: appUrl });
         return;
       } catch (err) {
-        console.log("Navigator share canceled or unsupported", err);
+        // User cancelled or API not fully supported - fall through
       }
     }
 
-    // 3. Fallback: WhatsApp Direct Link
-    const encodedText = encodeURIComponent(shareText);
-    window.location.href = `https://api.whatsapp.com/send?text=${encodedText}`;
+    // 3. Clipboard fallback (works everywhere, no navigation away from app)
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 3000);
+    } catch {
+      // 4. Final fallback: prompt with text
+      window.prompt("Aşağıdaki metni kopyalayıp arkadaşlarınla paylaşabilirsin:", shareText);
+    }
   };
 
   // Feedback State
@@ -734,6 +738,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
             <p className="text-[10px] text-slate-400 mt-4 leading-tight">
               *Dosya inmezse kopyaladığınız linki Chrome/Safari tarayıcısına yapıştırarak masalınızı indirebilirsiniz.
             </p>
+          </div>
+        </div>
+      )}
+      {/* Share Toast Notification */}
+      {shareToast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-fade-in">
+          <div className="bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-2">
+            ✅ Paylaşım metni kopyalandı! Arkadaşlarına yapıştırarak gönderebilirsin.
           </div>
         </div>
       )}
