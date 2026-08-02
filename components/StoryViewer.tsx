@@ -630,6 +630,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
              {/* Paper Texture Overlay */}
              {/* <div className="absolute inset-0 opacity-30 pointer-events-none" style={{backgroundImage: 'url("https://www.transparenttextures.com/patterns/cream-paper.png")'}}></div> */}
         </div>
+      </div>
 
       {/* Bottom Pagination & Controls Footer */}
       <div className="flex justify-between items-center mt-6 px-6 py-3 bg-white/80 backdrop-blur-md rounded-2xl shadow-md border border-slate-100 max-w-sm mx-auto">
