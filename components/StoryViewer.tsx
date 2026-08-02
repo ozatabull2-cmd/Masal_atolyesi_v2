@@ -33,44 +33,22 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const handleShare = async () => {
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
     const shareText = `✨ Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk!\n\nÇocuğunuza özel masallar oluşturmak için tıklayın: ${appUrl}`;
-    
-    let filesToShare: File[] = [];
-    
-    if (story.coverImageUrl) {
-      try {
-        const response = await fetch(story.coverImageUrl);
-        const blob = await response.blob();
-        const file = new File([blob], `${story.title.replace(/\s+/g, '_')}_Kapak.jpg`, { type: blob.type || 'image/jpeg' });
-        filesToShare = [file];
-      } catch (e) {
-        console.error("Kapak resmi paylaşıma hazırlanamadı:", e);
-      }
-    }
 
     if (navigator.share) {
       try {
-        if (filesToShare.length > 0 && typeof navigator.canShare === 'function' && navigator.canShare({ files: filesToShare })) {
-          await navigator.share({
-            files: filesToShare,
-            title: story.title,
-            text: shareText
-          });
-          return;
-        } else {
-          await navigator.share({
-            title: story.title,
-            text: shareText,
-            url: appUrl
-          });
-          return;
-        }
+        await navigator.share({
+          title: story.title,
+          text: shareText,
+          url: appUrl
+        });
+        return;
       } catch (err) {
         console.log("Navigator share iptal edildi veya başarısız", err);
       }
     }
 
     // Direct WhatsApp Fallback if Web Share is unavailable
-    const encodedText = encodeURIComponent(shareText);
+    const encodedText = encodeURIComponent(`${shareText}\n${appUrl}`);
     window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
   };
 
