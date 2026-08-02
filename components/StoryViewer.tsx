@@ -32,39 +32,19 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   const handleShare = async () => {
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
-    const shareText = `Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk! Siz de çocuğunuza özel masal oluşturmak için tıklayın: ${appUrl}`;
+    const shareText = `Ankara Çocuk Etkinlikler'de harika bir masal buldum! İncelemek için tıkla: ${appUrl}`;
 
     if (navigator.share) {
       try {
-        if (story.coverImageUrl) {
-          try {
-            const resp = await fetch(story.coverImageUrl);
-            const blob = await resp.blob();
-            const file = new File([blob], `Kapak_${story.title.replace(/\s+/g, '_')}.jpg`, { type: 'image/jpeg' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-              await navigator.share({
-                files: [file],
-                title: story.title,
-                text: shareText
-              });
-              return;
-            }
-          } catch(e) { /* ignore image fetch error */ }
-        }
-
         await navigator.share({
           title: story.title,
-          text: shareText,
-          url: appUrl
+          text: shareText
         });
         return;
       } catch (err) {
-        console.log("Navigator share canceled or failed", err);
+        console.log("Navigator share canceled", err);
       }
     }
-
-    // Fallback to direct WhatsApp
-    window.location.href = `whatsapp://send?text=${encodeURIComponent(shareText)}`;
   };
 
   // Feedback State

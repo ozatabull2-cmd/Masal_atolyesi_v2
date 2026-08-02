@@ -75,9 +75,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
                   <button 
                     onClick={() => {
                       const appUrl = "https://masal-atolyesi-v2.vercel.app/";
-                      const shareText = `✨ Masal Atölyesi'nde "${saved.story.title}" isimli harika bir masal oluşturduk!\n\nSiz de çocuğunuza özel masal oluşturmak için tıklayın: ${appUrl}`;
+                      const shareText = `Ankara Çocuk Etkinlikler'de harika bir masal buldum! İncelemek için tıkla: ${appUrl}`;
                       if (navigator.share) {
-                        navigator.share({ title: saved.story.title, text: shareText, url: appUrl }).catch(() => {});
+                        navigator.share({ title: saved.story.title, text: shareText }).catch(() => {});
                       }
                     }}
                     className="bg-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-pink-600 transition flex items-center gap-1"
