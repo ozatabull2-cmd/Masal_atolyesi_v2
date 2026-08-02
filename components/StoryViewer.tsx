@@ -380,6 +380,14 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   // Render Cover
   if (currentPage === 0) {
     return (
+      <>
+      {shareToast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-fade-in">
+          <div className="bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-2">
+            ✅ Paylaşım metni kopyalandı! Arkadaşlarına yapıştırarak gönderebilirsin.
+          </div>
+        </div>
+      )}
       <div 
         className="flex flex-col items-center justify-center min-h-[500px] max-h-[85vh] animate-fade-in w-full my-auto"
       >
@@ -450,12 +458,21 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
               </button>
         </div>
       </div>
+      </>
     );
   }
 
   // Render Back Cover
   if (currentPage === totalPages) {
     return (
+        <>
+        {shareToast && (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-fade-in">
+            <div className="bg-green-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-2">
+              ✅ Paylaşım metni kopyalandı! Arkadaşlarına yapıştırarak gönderebilirsin.
+            </div>
+          </div>
+        )}
         <div className="flex flex-col items-center justify-center min-h-[600px] animate-fade-in w-full"
         >
           <div className="relative w-full max-w-md min-h-[500px] bg-indigo-900 rounded-l-3xl rounded-r-lg shadow-2xl border-r-8 border-indigo-950 flex flex-col items-center justify-center p-8 text-center text-white overflow-hidden">
@@ -545,6 +562,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
             <ArrowLeft className="w-5 h-5" /> Geri Dön
           </button>
         </div>
+        </>
     );
   }
 
