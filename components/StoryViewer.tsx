@@ -31,16 +31,17 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const [readyAudioFile, setReadyAudioFile] = useState<File | null>(null);
 
   const handleShare = async () => {
-    const shareText = `Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk! ✨ Çocuklar için sihirli masallar yazan bu harika uygulamayı sen de dene: https://chat.whatsapp.com/JJFgs0neRkLCtm0OAHzOeK`;
+    const appUrl = "https://masal-atolyesi-v2.vercel.app/";
+    const shareText = `✨ Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk!\n\nÇocuğunuza özel sihirli masallar oluşturmak için tıklayın: ${appUrl}`;
     
     let filesToShare: File[] = [];
     
-    // Kapak resmini dosyaya dönüştür (Instagram/Görsel paylaşımı için)
+    // Kapak resmini dosyaya dönüştür (Instagram Story / WhatsApp Görsel Paylaşımı için)
     if (story.coverImageUrl) {
       try {
         const response = await fetch(story.coverImageUrl);
         const blob = await response.blob();
-        const file = new File([blob], 'masal_kapak.jpg', { type: blob.type || 'image/jpeg' });
+        const file = new File([blob], `${story.title.replace(/\s+/g, '_')}_Kapak.jpg`, { type: blob.type || 'image/jpeg' });
         filesToShare = [file];
       } catch (e) {
         console.error("Kapak resmi paylaşıma hazırlanamadı:", e);
@@ -56,29 +57,28 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
     if (navigator.share) {
       try {
-        // Görsel paylaşımı destekleniyor mu kontrol et
         if (filesToShare.length > 0 && typeof navigator.canShare === 'function' && navigator.canShare({ files: filesToShare })) {
           await navigator.share({
             files: filesToShare,
             title: story.title,
-            text: shareText
+            text: shareText,
+            url: appUrl
           });
           return;
         } else {
-          // Sadece metin paylaş
           await navigator.share({
             title: story.title,
-            text: shareText
+            text: shareText,
+            url: appUrl
           });
           return;
         }
       } catch (err) {
-        console.log("Navigator share basarisiz, kopyalama yontemi kullaniliyor", err);
+        console.log("Navigator share iptal edildi veya başarısız", err);
       }
     }
 
-    // WebView veya Masaüstü için direkt bildirim
-    alert("✨ Harika! Paylaşım metni panoya kopyalandı.\n\nŞimdi Instagram veya WhatsApp'a gidip mesaj alanına 'Yapıştır' diyerek sevdiklerinizle paylaşabilirsiniz!");
+    alert("✨ Harika! Masal davet metni ve bağlantı panoya kopyalandı.\n\nŞimdi WhatsApp veya Instagram'a gidip mesaj alanına 'Yapıştır' diyerek sevdiklerinizle paylaşabilirsiniz!");
   };
 
   // Feedback State
@@ -435,18 +435,21 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4">
              <button 
                 onClick={handleNext}
-                className="col-span-1 sm:col-span-2 bg-white text-indigo-600 px-6 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2"
+                className="col-span-1 sm:col-span-2 bg-white text-indigo-600 px-6 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2 text-base"
               >
                 Kitabı Aç <ArrowRight className="w-5 h-5" />
               </button>
 
-
-
-
+              <button 
+                onClick={handleShare}
+                className="col-span-1 bg-pink-500 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-sm"
+              >
+                <Share2 className="w-5 h-5" /> Hikayede / DM'de Paylaş
+              </button>
 
               <button 
                 onClick={onReset}
-                className="col-span-1 sm:col-span-2 bg-yellow-400 text-indigo-900 px-6 py-3 rounded-full font-bold shadow-lg hover:bg-yellow-300 transition flex items-center justify-center gap-2"
+                className="col-span-1 bg-yellow-400 text-indigo-900 px-6 py-3 rounded-full font-bold shadow-lg hover:bg-yellow-300 transition flex items-center justify-center gap-2 text-sm"
               >
                 <RefreshCcw className="w-5 h-5" /> Yeni Masal Yaz
               </button>
@@ -552,9 +555,21 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         <button onClick={handlePrev} className="p-2 hover:bg-slate-200 rounded-full text-slate-600 transition">
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <span className="font-bold text-slate-400 text-sm uppercase tracking-wider">
-          Sayfa {currentPage} / {story.pages.length}
-        </span>
+        
+        <div className="flex items-center gap-3">
+          <span className="font-bold text-slate-400 text-sm uppercase tracking-wider">
+            Sayfa {currentPage} / {story.pages.length}
+          </span>
+          
+          <button 
+            onClick={handleShare} 
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-full font-bold text-xs shadow transition"
+            title="Masalı Paylaş"
+          >
+            <Share2 className="w-3.5 h-3.5" /> Paylaş
+          </button>
+        </div>
+
         <button onClick={handleNext} className="p-2 hover:bg-slate-200 rounded-full text-indigo-600 transition">
           <ArrowRight className="w-6 h-6" />
         </button>
