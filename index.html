@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Masal Atölyesi - Kişiye Özel Masallar</title>
+    <link rel="stylesheet" href="/index.css">
+    <script>
+      // Android WebView safe-area fix
+      (function() {
+        function applyInsets() {
+          var el = document.createElement('div');
+          el.style.cssText = 'position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;';
+          document.documentElement.appendChild(el);
+          var envTop = parseInt(window.getComputedStyle(el).height) || 0;
+          document.documentElement.removeChild(el);
+
+          var el2 = document.createElement('div');
+          el2.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);visibility:hidden;pointer-events:none;';
+          document.documentElement.appendChild(el2);
+          var envBottom = parseInt(window.getComputedStyle(el2).height) || 0;
+          document.documentElement.removeChild(el2);
+
+          var ua = navigator.userAgent || '';
+          var isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+          var minTop    = isMobile ? 48 : 16;
+          var minBottom = isMobile ? 32 : 16;
+
+          var safeTop    = Math.max(envTop, minTop);
+          var safeBottom = Math.max(envBottom, minBottom);
+
+          document.documentElement.style.setProperty('--safe-top',    safeTop    + 'px');
+          document.documentElement.style.setProperty('--safe-bottom',  safeBottom + 'px');
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', applyInsets);
+        } else {
+          applyInsets();
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

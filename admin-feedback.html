@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Masal Atölyesi – Görüş Paneli</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4c1d95 100%);
+      min-height: 100vh;
+      color: #e0e7ff;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 22px 32px;
+      background: rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+    }
+    header .logo { font-size: 28px; }
+    header h1 { font-size: 1.4rem; font-weight: 800; color: #fde68a; }
+    header p { font-size: 0.8rem; color: #a5b4fc; }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 80px);
+      padding: 24px;
+    }
+    .login-box {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 40px 36px;
+      max-width: 380px;
+      width: 100%;
+      backdrop-filter: blur(12px);
+      text-align: center;
+    }
+    .login-box h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 6px; color: #fde68a; }
+    .login-box p { font-size: 0.85rem; color: #a5b4fc; margin-bottom: 24px; }
+    .login-box input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.3);
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+      margin-bottom: 14px;
+      outline: none;
+    }
+    .login-box input:focus { border-color: #818cf8; }
+    .login-box button {
+      width: 100%;
+      padding: 13px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity .2s;
+    }
+    .login-box button:hover { opacity: .88; }
+    .error-msg { color: #f87171; font-size: 0.82rem; margin-top: 10px; }
+
+    /* ── DASHBOARD ── */
+    #dashboard { display: none; padding: 28px 24px 48px; max-width: 1100px; margin: 0 auto; }
+
+    /* Stat cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
+    .stat-card .value { font-size: 2.2rem; font-weight: 800; color: #fde68a; line-height: 1; }
+    .stat-card .label { font-size: 0.78rem; color: #a5b4fc; margin-top: 6px; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* Controls bar */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .controls input[type="text"] {
+      flex: 1;
+      min-width: 220px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.3);
+      color: #fff;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+    }
+    .controls input[type="text"]:focus { border-color: #818cf8; }
+    .controls select {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.35);
+      color: #e0e7ff;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+    }
+    .btn-refresh {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: opacity .2s;
+    }
+    .btn-refresh:hover { opacity: .85; }
+    .btn-logout {
+      margin-left: auto;
+      padding: 8px 18px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: transparent;
+      color: #a5b4fc;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+      transition: background .2s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.08); }
+
+    /* Feedback cards */
+    #feedback-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+      transition: transform .18s, border-color .18s;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 16px 16px 0 0;
+    }
+    .card.stars-5::before { background: linear-gradient(90deg, #fde68a, #f59e0b); }
+    .card.stars-4::before { background: linear-gradient(90deg, #6ee7b7, #10b981); }
+    .card.stars-3::before { background: linear-gradient(90deg, #93c5fd, #3b82f6); }
+    .card.stars-2::before { background: linear-gradient(90deg, #fca5a5, #ef4444); }
+    .card.stars-1::before { background: linear-gradient(90deg, #d1d5db, #6b7280); }
+    .card:hover { transform: translateY(-3px); border-color: rgba(99,102,241,.45); }
+
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .card-title { font-size: 0.95rem; font-weight: 700; color: #e0e7ff; }
+    .stars { font-size: 1.1rem; letter-spacing: 2px; }
+    .card-comment {
+      font-size: 0.88rem;
+      color: #c7d2fe;
+      line-height: 1.55;
+      margin-bottom: 12px;
+      font-style: italic;
+      min-height: 36px;
+    }
+    .card-meta { font-size: 0.75rem; color: #6366f1; }
+    .card-email { font-size: 0.75rem; color: #818cf8; margin-top: 3px; }
+
+    /* Empty / loading states */
+    .state-msg {
+      text-align: center;
+      color: #818cf8;
+      padding: 60px 20px;
+      font-size: 1rem;
+      grid-column: 1/-1;
+    }
+    .spinner {
+      display: inline-block;
+      width: 32px; height: 32px;
+      border: 3px solid rgba(129,140,248,.3);
+      border-top-color: #818cf8;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 600px) {
+      header { padding: 16px 18px; }
+      #dashboard { padding: 18px 14px 48px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📚</div>
+  <div>
+    <h1>Masal Atölyesi – Görüş Paneli</h1>
+    <p>Kullanıcı geri bildirimleri • Admin erişimi</p>
+  </div>
+</header>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:48px;margin-bottom:12px;">🔐</div>
+    <h2>Admin Girişi</h2>
+    <p>Panele erişmek için şifreyi girin</p>
+    <input type="password" id="pwd-input" placeholder="Şifre" autocomplete="current-password" />
+    <button onclick="doLogin()">Giriş Yap</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="value" id="stat-total">–</div>
+      <div class="label">Toplam Görüş</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="stat-avg">–</div>
+      <div class="label">Ortalama Puan</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="stat-five">–</div>
+      <div class="label">5 Yıldız</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="stat-with-comment">–</div>
+      <div class="label">Yorumlu Görüş</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <input type="text" id="search-input" placeholder="Masal adı veya yorum ara…" oninput="renderCards()" />
+    <select id="filter-stars" onchange="renderCards()">
+      <option value="0">Tüm Puanlar</option>
+      <option value="5">⭐⭐⭐⭐⭐ 5</option>
+      <option value="4">⭐⭐⭐⭐ 4</option>
+      <option value="3">⭐⭐⭐ 3</option>
+      <option value="2">⭐⭐ 2</option>
+      <option value="1">⭐ 1</option>
+    </select>
+    <select id="sort-by" onchange="renderCards()">
+      <option value="newest">En Yeni</option>
+      <option value="oldest">En Eski</option>
+      <option value="highest">En Yüksek Puan</option>
+      <option value="lowest">En Düşük Puan</option>
+    </select>
+    <button class="btn-refresh" onclick="loadFeedbacks()">🔄 Yenile</button>
+    <button class="btn-logout" onclick="doLogout()">Çıkış</button>
+  </div>
+
+  <!-- Cards -->
+  <div id="feedback-list">
+    <div class="state-msg"><div class="spinner"></div><br>Yükleniyor…</div>
+  </div>
+
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ─── CONFIG (ankaracocukv3 projesi) ───
+  const firebaseConfig = {
+    apiKey: "AIzaSyAXH4MpMNJI_uIVQkPN_-NkZhJeg5Mt5UA",
+    authDomain: "ankaracocukv3-b2182.firebaseapp.com",
+    projectId: "ankaracocukv3-b2182",
+    storageBucket: "ankaracocukv3-b2182.firebasestorage.app",
+    messagingSenderId: "678969625372",
+    appId: "1:678969625372:web:6e910af53e1218ab4488d9",
+  };
+
+  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  const db = getFirestore(app);
+
+  // ─── ADMİN ŞİFRESİ (basit koruma) ───
+  const ADMIN_PASS = "masal2026admin";
+
+  // ─── STATE ───
+  let allFeedbacks = [];
+
+  // ─── GİRİŞ / ÇIKIŞ ───
+  window.doLogin = () => {
+    const val = document.getElementById('pwd-input').value.trim();
+    if (val === ADMIN_PASS) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      loadFeedbacks();
+    } else {
+      document.getElementById('login-error').textContent = 'Yanlış şifre. Tekrar deneyin.';
+    }
+  };
+
+  document.getElementById('pwd-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.doLogin();
+  });
+
+  window.doLogout = () => {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('pwd-input').value = '';
+    allFeedbacks = [];
+  };
+
+  // ─── VERİ YÜKLEME ───
+  window.loadFeedbacks = async () => {
+    const list = document.getElementById('feedback-list');
+    list.innerHTML = '<div class="state-msg"><div class="spinner"></div><br>Yükleniyor…</div>';
+
+    try {
+      const q = query(collection(db, "masal_feedback"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      allFeedbacks = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      updateStats();
+      renderCards();
+    } catch (err) {
+      list.innerHTML = `<div class="state-msg">⚠️ Veri yüklenemedi: ${err.message}<br><small>Firestore kurallarını kontrol edin.</small></div>`;
+    }
+  };
+
+  // ─── İSTATİSTİKLER ───
+  function updateStats() {
+    const total = allFeedbacks.length;
+    const avg = total ? (allFeedbacks.reduce((s, f) => s + (f.rating || 0), 0) / total).toFixed(1) : '–';
+    const five = allFeedbacks.filter(f => f.rating === 5).length;
+    const withComment = allFeedbacks.filter(f => f.comment && f.comment.trim()).length;
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-avg').textContent = avg;
+    document.getElementById('stat-five').textContent = five;
+    document.getElementById('stat-with-comment').textContent = withComment;
+  }
+
+  // ─── KARTLAR ───
+  window.renderCards = () => {
+    const searchVal = document.getElementById('search-input').value.trim().toLowerCase();
+    const filterStars = parseInt(document.getElementById('filter-stars').value);
+    const sortBy = document.getElementById('sort-by').value;
+
+    let data = [...allFeedbacks];
+
+    // Filtre
+    if (filterStars > 0) data = data.filter(f => f.rating === filterStars);
+    if (searchVal) {
+      data = data.filter(f =>
+        (f.storyTitle || '').toLowerCase().includes(searchVal) ||
+        (f.comment || '').toLowerCase().includes(searchVal) ||
+        (f.userEmail || '').toLowerCase().includes(searchVal)
+      );
+    }
+
+    // Sırala
+    data.sort((a, b) => {
+      const ta = a.createdAt?.seconds ?? 0;
+      const tb = b.createdAt?.seconds ?? 0;
+      if (sortBy === 'newest') return tb - ta;
+      if (sortBy === 'oldest') return ta - tb;
+      if (sortBy === 'highest') return (b.rating || 0) - (a.rating || 0);
+      if (sortBy === 'lowest') return (a.rating || 0) - (b.rating || 0);
+      return 0;
+    });
+
+    const list = document.getElementById('feedback-list');
+
+    if (data.length === 0) {
+      list.innerHTML = '<div class="state-msg">😔 Eşleşen görüş bulunamadı.</div>';
+      return;
+    }
+
+    list.innerHTML = data.map(f => {
+      const stars = '⭐'.repeat(f.rating || 0) + '☆'.repeat(5 - (f.rating || 0));
+      const date = f.createdAt?.seconds
+        ? new Date(f.createdAt.seconds * 1000).toLocaleString('tr-TR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+        : 'Bilinmiyor';
+      const comment = f.comment?.trim() ? `"${escHtml(f.comment)}"` : '<em style="opacity:.55">Yorum yazılmamış</em>';
+      const email = f.userEmail ? `📧 ${escHtml(f.userEmail)}` : '';
+      return `
+        <div class="card stars-${f.rating || 0}">
+          <div class="card-header">
+            <div class="card-title">📖 ${escHtml(f.storyTitle || 'Başlık yok')}</div>
+            <div class="stars">${stars}</div>
+          </div>
+          <div class="card-comment">${comment}</div>
+          <div class="card-meta">🕐 ${date}</div>
+          ${email ? `<div class="card-email">${email}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  };
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+
+</body>
+</html>

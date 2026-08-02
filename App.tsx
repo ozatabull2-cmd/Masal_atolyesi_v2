@@ -1,0 +1,443 @@
+
+import React, { useState, useEffect } from 'react';
+import { AppState, StoryData, UserInput } from './types';
+import BookForm from './components/BookForm';
+import StoryViewer from './components/StoryViewer';
+import LoadingScreen from './components/LoadingScreen';
+import LibraryView from './components/LibraryView';
+import { useStoryLibrary } from './hooks/useStoryLibrary';
+import { generateIllustration, generateStoryText, generateSpeech } from './services/geminiService';
+import { Hourglass, BookOpen, Sparkles, Wrench } from 'lucide-react';
+import { getUserQuota, updateUserQuota, db } from './firebase';
+
+const QUOTA_LIMIT = 1;
+const RESET_PERIOD_MS = 12 * 60 * 60 * 1000; // 12 hours in ms
+
+// Promo Codes configuration: code -> credits
+const PROMO_DATA: Record<string, number> = {
+  "ANKARA": 1,
+  "K7L2M9": 1,
+  "X4P8R3": 1,
+  "T9Y5W1": 1,
+  "B2H6S8": 1,
+  "V3N7C4": 1,
+  "J8D5F2": 1,
+  "M6G9Z1": 1,
+  "R4K3L7": 1,
+  "S5T8P2": 1,
+  "Y1W9Q6": 1,
+  // 10 Rights Codes
+  "ANKARA10": 10,
+  "MASAL10": 10,
+  "SIHIR10": 10,
+  "OZEL10": 10,
+  "HEDIYE10": 10
+};
+
+const PROMO_CODES = Object.keys(PROMO_DATA);
+
+// Internal Cooldown Component
+const CooldownView: React.FC<{ target: number; onComplete: () => void }> = ({ target, onComplete }) => {
+    const [secondsLeft, setSecondsLeft] = useState(Math.ceil((target - Date.now()) / 1000));
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            const left = Math.ceil((target - Date.now()) / 1000);
+            if (left <= 0) {
+                clearInterval(timer);
+                onComplete();
+            } else {
+                setSecondsLeft(left);
+            }
+        }, 250);
+        return () => clearInterval(timer);
+    }, [target, onComplete]);
+
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-3xl shadow-xl p-8 text-center max-w-md mx-auto animate-fade-in">
+            <div className="bg-indigo-100 p-6 rounded-full mb-6 animate-pulse">
+                <Hourglass className="w-12 h-12 text-indigo-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">Biraz Dinlenelim!</h2>
+            <p className="text-slate-500 mb-8">
+                Sihirli değneğimizin soğuması gerekiyor. Yeni bir masal oluşturmadan önce lütfen bekle.
+            </p>
+            <div className="text-6xl font-bold text-indigo-500 font-mono mb-4">
+                {secondsLeft}
+            </div>
+            <p className="text-sm text-indigo-300 font-bold uppercase tracking-wider">Saniye Kaldı</p>
+        </div>
+    );
+};
+
+// Maintenance View Component
+const MaintenanceView: React.FC<{ hasSavedStories: boolean }> = ({ hasSavedStories }) => {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[350px] bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-8 text-center max-w-md mx-auto border border-indigo-100/50 animate-fade-in">
+      <div className="bg-amber-100 p-6 rounded-full mb-6 animate-bounce">
+        <Wrench className="w-12 h-12 text-amber-600" />
+      </div>
+      <h2 className="text-2xl font-extrabold text-slate-800 mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        Uygulama Bakımdadır
+      </h2>
+      <p className="text-slate-600 leading-relaxed mb-6 font-medium">
+        Şu an için uygulama bakımdadır, yakın zamanda tekrar açılacaktır.
+      </p>
+      {hasSavedStories ? (
+        <>
+          <div className="w-full h-[1px] bg-slate-100 my-4"></div>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">
+            Daha önce oluşturduğunuz masallara yukarıdaki <strong>"KAYITLI MASALLARIM"</strong> butonundan erişmeye devam edebilirsiniz.
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="w-full h-[1px] bg-slate-100 my-4"></div>
+          <p className="text-xs text-slate-400 font-medium">
+            Yeni masal oluşturma hizmeti geçici bir süre için durdurulmuştur.
+          </p>
+        </>
+      )}
+    </div>
+  );
+};
+
+function App() {
+  const [appState, setAppState] = useState<AppState>(AppState.Input);
+  const [storyData, setStoryData] = useState<StoryData | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const initialEmail = params ? (params.get('email') || params.get('mail')) : null;
+  const initialName = params ? params.get('name') : null;
+  const initialRole = params ? params.get('role') : null;
+  
+  const isAdminUser = initialRole === 'admin' || (initialEmail && initialEmail.toLowerCase().trim() === 'ozgurweb112@gmail.com');
+
+  // Quota State
+  const [remainingQuota, setRemainingQuota] = useState<number>(isAdminUser ? 999 : QUOTA_LIMIT);
+  const [nextResetTime, setNextResetTime] = useState<number | null>(null);
+
+  // Cooldown State
+  const [cooldownTarget, setCooldownTarget] = useState<number | null>(null);
+
+  const [userEmail, setUserEmail] = useState<string | null>(initialEmail || (initialName ? "kullanici@mail.com" : "test@mail.com"));
+  const [userName, setUserName] = useState<string | null>(initialName || (initialEmail ? "Kullanıcı" : "Test Kullanıcısı"));
+  const [userRole, setUserRole] = useState<string | null>(isAdminUser ? "admin" : (initialRole || "user"));
+
+  const { savedStories, saveStory, deleteStory } = useStoryLibrary();
+
+  useEffect(() => {
+    checkQuota(userEmail);
+  }, []);
+
+  const checkQuota = async (mailKey: string | null = userEmail) => {
+    if (userRole === 'admin' || (mailKey && mailKey.toLowerCase().trim() === 'ozgurweb112@gmail.com')) {
+      setRemainingQuota(999);
+      setNextResetTime(null);
+      return;
+    }
+
+    let storedData = null;
+    try {
+        if (mailKey && db) {
+            storedData = await getUserQuota(mailKey);
+        } else {
+            const s = localStorage.getItem('masal_quota');
+            if (s) storedData = JSON.parse(s);
+        }
+    } catch(e) { console.error('Quota fetch error:', e); }
+
+    if (storedData) {
+        const { count, resetTime } = storedData;
+        const now = Date.now();
+
+        if (resetTime && now > resetTime) {
+            resetQuotaState(mailKey);
+        } else {
+            setRemainingQuota(QUOTA_LIMIT - (count || 0));
+            setNextResetTime(resetTime);
+        }
+    } else {
+        setRemainingQuota(QUOTA_LIMIT);
+        setNextResetTime(null);
+    }
+  };
+
+  const setStorageData = (data: any, mailKey: string | null = userEmail) => {
+      if (mailKey && db) {
+          updateUserQuota(mailKey, data).catch(console.error);
+      } else {
+          localStorage.setItem('masal_quota', JSON.stringify(data));
+      }
+  };
+
+  const resetQuotaState = (mailKey: string | null = userEmail) => {
+      const data = { count: 0, resetTime: null };
+      setStorageData(data, mailKey);
+      setRemainingQuota(QUOTA_LIMIT);
+      setNextResetTime(null);
+  };
+
+  const decrementQuota = () => {
+      const currentCount = QUOTA_LIMIT - remainingQuota;
+      const newCount = currentCount + 1;
+      let resetTime = nextResetTime;
+      
+      if (!resetTime && newCount > 0) {
+          resetTime = Date.now() + RESET_PERIOD_MS;
+      }
+
+      const newData = { count: newCount, resetTime };
+      setStorageData(newData);
+      
+      setRemainingQuota(QUOTA_LIMIT - newCount);
+      setNextResetTime(resetTime);
+  };
+
+  const handleApplyPromo = (code: string): { success: boolean, message: string } => {
+    // Normalize input
+    const normalizedCode = code.trim().toUpperCase();
+
+    // Check if code is in the allowed list
+    if (!PROMO_CODES.includes(normalizedCode)) {
+        return { success: false, message: "Geçersiz promosyon kodu." };
+    }
+
+    /* Single use check removed as per user request to allow entry whenever quota is full */
+
+    // Apply Promo
+    const currentCount = QUOTA_LIMIT - remainingQuota;
+
+    // Get credits for this code
+    const credits = PROMO_DATA[normalizedCode] || 1;
+
+    // Reduce count (Adding credits)
+    const newCount = currentCount - credits;
+    const newData = { count: newCount, resetTime: nextResetTime };
+    
+    setStorageData(newData);
+    
+    setRemainingQuota(QUOTA_LIMIT - newCount);
+    
+    return { success: true, message: `Tebrikler! +${credits} Masal hakkı eklendi.` };
+  };
+
+  const handleFormSubmit = async (input: UserInput) => {
+    if (remainingQuota <= 0 && userRole !== 'admin') {
+        setErrorMsg("Hakkınız dolmuştur. Lütfen sürenin dolmasını bekleyin veya promosyon kodu kullanın.");
+        return;
+    }
+
+    setErrorMsg(null);
+    setAppState(AppState.GeneratingStory);
+
+    try {
+      // 1. Generate Text Structure
+      const generatedStory = await generateStoryText(input);
+      
+      // Decrement quota
+      if (userRole !== 'admin') {
+        decrementQuota();
+      }
+
+      // Set Cooldown Target (60 seconds from now)
+      if (userRole !== 'admin') {
+        setCooldownTarget(Date.now() + 60000);
+      }
+
+      // 2. Start Image and Audio Generation Phase
+      setAppState(AppState.GeneratingImages);
+      setLoadingProgress(0);
+
+      const totalTasks = generatedStory.pages.length * 2 + 1; // Pages * (Image + Audio) + Cover Image
+      let completedTasks = 0;
+
+      const updateProgress = () => {
+        completedTasks++;
+        setLoadingProgress((completedTasks / totalTasks) * 100);
+      };
+
+      // Delay helper function
+      const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+      // Generate Cover Image first
+      let coverUrl = "";
+      try {
+          // Make prompt extremely safe to avoid Vertex AI Image Safety Blocks
+          const safeCoverPrompt = generatedStory.coverImagePrompt
+            .replace(/çocuk/gi, "young storybook hero")
+            .replace(/uzaylı/gi, "friendly space creature")
+            .replace(/yaratık/gi, "cute visitor from the stars");
+            
+          const coverPrompt = `Safe, cheerful, educational, non-threatening, cozy, playful children's storybook cover illustration. Colorful whimsical digital drawing. Scene: ${safeCoverPrompt}. No fear, no danger, no realistic human child, no photorealism, no stock photo, no dark imagery. Title space at top.`;
+          coverUrl = await generateIllustration(coverPrompt);
+      } catch (e) {
+          console.error("Failed to generate cover image", e);
+      } finally {
+          updateProgress();
+          await delay(10000); // Always wait 10s after an image request, even if it failed
+      }
+
+      // Generate Page Images and Audio Sequentially to avoid rate limits
+      const pagesWithAssets = [];
+      for (const page of generatedStory.pages) {
+          let imageUrl = page.imageUrl;
+          let audioBase64 = page.audioBase64;
+
+          // Sequential Image Task
+          try {
+              // Replace potentially problematic keywords
+              const safeImagePrompt = page.imagePrompt
+                .replace(/çocuk/gi, "young storybook hero")
+                .replace(/uzaylı/gi, "friendly space creature")
+                .replace(/yaratık/gi, "cute visitor from the stars")
+                .replace(/korkunç/gi, "silly")
+                .replace(/canavar/gi, "fluffy imaginary friend");
+
+              const fullPrompt = `Safe, cheerful, educational, non-threatening, cozy, playful children's storybook illustration. Colorful whimsical digital drawing, little hero character. Scene: ${safeImagePrompt}. No fear, no danger, no realistic human child, no photorealism, no stock photo, no dark imagery. Consistent style.`;
+              imageUrl = await generateIllustration(fullPrompt);
+          } catch (e) {
+              console.error(`Failed to generate image for page ${page.pageNumber}`, e);
+          } finally {
+              updateProgress();
+              await delay(10000); // Always wait 10s after an image request
+          }
+
+          // Sequential Audio Task
+          try {
+             audioBase64 = await generateSpeech(page.text);
+          } catch (e) {
+             console.error(`Failed to generate audio for page ${page.pageNumber}`, e);
+          } finally {
+             updateProgress();
+          }
+
+          pagesWithAssets.push({ ...page, imageUrl, audioBase64 });
+      }
+
+      const finalStory = { 
+        ...generatedStory, 
+        coverImageUrl: coverUrl, 
+        pages: pagesWithAssets 
+      };
+
+      setStoryData(finalStory);
+      await saveStory(finalStory);
+      
+      setAppState(AppState.Reading);
+
+    } catch (err: any) {
+      console.error(err);
+      setErrorMsg("Üzgünüz, masalı oluştururken sihirli bir hata oluştu. Lütfen tekrar deneyin.");
+      setAppState(AppState.Error);
+    }
+  };
+
+  const resetApp = () => {
+    // Check for cooldown
+    if (cooldownTarget && Date.now() < cooldownTarget && userRole !== 'admin') {
+        setAppState(AppState.Cooldown);
+        return;
+    }
+
+    setStoryData(null);
+    setAppState(AppState.Input);
+    setLoadingProgress(0);
+    setErrorMsg(null);
+    checkQuota(); // Re-check quota when returning to home
+  };
+
+  // Helper to render content based on state
+  const renderContent = () => {
+    switch (appState) {
+      case AppState.Input:
+        return (
+            <div className="w-full flex flex-col items-center">
+                {savedStories.length > 0 && (
+                  <button
+                    onClick={() => setAppState(AppState.Library)}
+                    className="mb-10 group relative flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 rounded-full font-extrabold text-white shadow-[0_8px_30px_rgba(30,58,138,0.5)] hover:shadow-[0_8px_40px_rgba(30,64,175,0.7)] hover:-translate-y-1 transition-all duration-300 border-[3px] border-indigo-400/50 animate-fade-in"
+                  >
+                    {/* Glowing background blur effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-800 to-blue-700 rounded-full blur-md opacity-40 group-hover:opacity-70 transition duration-500 -z-10"></div>
+                    
+                    <BookOpen className="w-6 h-6 text-blue-300 drop-shadow-md" /> 
+                    <span className="text-lg drop-shadow-md tracking-wider">KAYITLI MASALLARIM ({savedStories.length})</span>
+                    <Sparkles className="w-5 h-5 text-blue-300 animate-pulse drop-shadow-md" />
+                  </button>
+                )}
+                <BookForm 
+                    onSubmit={handleFormSubmit} 
+                    isSubmitting={false} 
+                    remainingQuota={remainingQuota}
+                    nextResetTime={nextResetTime}
+                    onApplyPromo={handleApplyPromo}
+                    isAdmin={userRole === 'admin'}
+                    userName={userName}
+                />
+            </div>
+        );
+      
+      case AppState.GeneratingStory:
+        return <LoadingScreen status="story" />;
+
+      case AppState.GeneratingImages:
+        return <LoadingScreen status="images" progress={loadingProgress} />;
+
+      case AppState.Reading:
+        return storyData ? <StoryViewer story={storyData} onReset={resetApp} userEmail={userEmail} /> : null;
+
+      case AppState.Library:
+        return <LibraryView 
+                  stories={savedStories} 
+                  onOpenStory={(story) => {
+                      setStoryData(story);
+                      setAppState(AppState.Reading);
+                  }}
+                  onDeleteStory={deleteStory}
+                  onBack={() => setAppState(AppState.Input)} 
+               />;
+      
+      case AppState.Cooldown:
+        return cooldownTarget ? <CooldownView target={cooldownTarget} onComplete={() => setAppState(AppState.Input)} /> : null;
+
+      case AppState.Error:
+        return (
+          <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-lg">
+            <div className="text-5xl mb-4">😿</div>
+            <h3 className="text-xl font-bold text-red-500 mb-2">Bir Hata Oluştu</h3>
+            <p className="text-slate-600 mb-6">{errorMsg}</p>
+            <button 
+              onClick={resetApp}
+              className="bg-indigo-500 text-white px-6 py-2 rounded-full font-bold hover:bg-indigo-600"
+            >
+              Tekrar Dene
+            </button>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div
+      className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 px-4 md:px-8"
+      style={{ paddingTop: 'var(--safe-top, 1rem)', paddingBottom: 'var(--safe-bottom, 1rem)' }}
+    >
+      <div className="max-w-7xl mx-auto flex flex-col items-center justify-center min-h-[90vh]">
+        {renderContent()}
+        
+        {appState === AppState.Input && (
+          <footer className="mt-12 text-center text-slate-400 text-sm">
+            <p>Gemini AI tarafından güçlendirilmiştir. ✨</p>
+          </footer>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default App;

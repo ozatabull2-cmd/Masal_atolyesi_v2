@@ -1,0 +1,718 @@
+
+import React, { useState, useRef, useEffect } from 'react';
+import { StoryData } from '../types';
+import { ArrowLeft, ArrowRight, RefreshCcw, BookOpen, Download, Volume2, VolumeX, Loader2, Play, Pause, Instagram, RotateCcw, Star, MessageSquare, Music, Share2 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import { decodeAudioData, decodeBase64, audioBufferToWav } from '../services/geminiService';
+import { saveFeedback } from '../firebase';
+
+interface StoryViewerProps {
+  story: StoryData;
+  onReset: () => void;
+  userEmail?: string | null;
+}
+
+const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) => {
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isDownloadingAudio, setIsDownloadingAudio] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [canShare, setCanShare] = useState(false);
+  
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [modalType, setModalType] = useState<'pdf' | 'audio'>('pdf');
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const [readyPdfUrl, setReadyPdfUrl] = useState<string | null>(null);
+  const [readyPdfFile, setReadyPdfFile] = useState<File | null>(null);
+  const [readyAudioUrl, setReadyAudioUrl] = useState<string | null>(null);
+  const [readyAudioFile, setReadyAudioFile] = useState<File | null>(null);
+
+  const handleShare = async () => {
+    const shareText = `Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk! ✨ Çocuklar için sihirli masallar yazan bu harika uygulamayı sen de dene: https://chat.whatsapp.com/JJFgs0neRkLCtm0OAHzOeK`;
+    
+    let filesToShare: File[] = [];
+    
+    // Kapak resmini dosyaya dönüştür (Instagram/Görsel paylaşımı için)
+    if (story.coverImageUrl) {
+      try {
+        const response = await fetch(story.coverImageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], 'masal_kapak.jpg', { type: blob.type || 'image/jpeg' });
+        filesToShare = [file];
+      } catch (e) {
+        console.error("Kapak resmi paylaşıma hazırlanamadı:", e);
+      }
+    }
+
+    // Panoya kopyalama (Güvenli Fallback)
+    try {
+      await navigator.clipboard.writeText(shareText);
+    } catch (e) {
+      console.error("Panoya kopyalama basarisiz", e);
+    }
+
+    if (navigator.share) {
+      try {
+        // Görsel paylaşımı destekleniyor mu kontrol et
+        if (filesToShare.length > 0 && typeof navigator.canShare === 'function' && navigator.canShare({ files: filesToShare })) {
+          await navigator.share({
+            files: filesToShare,
+            title: story.title,
+            text: shareText
+          });
+          return;
+        } else {
+          // Sadece metin paylaş
+          await navigator.share({
+            title: story.title,
+            text: shareText
+          });
+          return;
+        }
+      } catch (err) {
+        console.log("Navigator share basarisiz, kopyalama yontemi kullaniliyor", err);
+      }
+    }
+
+    // WebView veya Masaüstü için direkt bildirim
+    alert("✨ Harika! Paylaşım metni panoya kopyalandı.\n\nŞimdi Instagram veya WhatsApp'a gidip mesaj alanına 'Yapıştır' diyerek sevdiklerinizle paylaşabilirsiniz!");
+  };
+
+  // Feedback State
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+
+  const handleDownloadClick = (type: 'pdf' | 'audio') => {
+    if (type === 'pdf') {
+      if (readyPdfUrl) {
+        setModalType('pdf');
+        setShowDownloadModal(true);
+      } else {
+        generatePDF();
+      }
+    } else {
+      if (readyAudioUrl) {
+        setModalType('audio');
+        setShowDownloadModal(true);
+      } else {
+        generateAudio();
+      }
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 3000);
+    }).catch(err => {
+        console.error('Failed to copy', err);
+    });
+  };
+
+  const totalPages = story.pages.length + 1; // Cover + Story Pages
+
+  // Native HTML5 Audio Element Ref for MP3 playback
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
+  // Stop playback when visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+            stopAudio();
+        }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+        stopAudio();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  const stopAudio = () => {
+    if (audioElementRef.current) {
+      try {
+        audioElementRef.current.oncanplaythrough = null;
+        audioElementRef.current.onerror = null;
+        audioElementRef.current.onended = null;
+        audioElementRef.current.pause();
+        audioElementRef.current.currentTime = 0;
+        audioElementRef.current.removeAttribute('src'); // clean src completely
+        audioElementRef.current.load(); // abort any pending downloads
+      } catch(e) { /* ignore */ }
+      audioElementRef.current = null;
+    }
+    setIsAudioPlaying(false);
+  };
+
+  const playAudio = async (base64Data: string | undefined) => {
+    stopAudio(); // Ensure previous audio is stopped
+    
+    if (!base64Data) return;
+
+    setAudioLoading(true);
+    try {
+        const audio = new Audio(`data:audio/mpeg;base64,${base64Data}`);
+        audioElementRef.current = audio; // Set ref immediately before async events
+        
+        audio.onended = () => {
+            if (audioElementRef.current !== audio) return;
+            setIsAudioPlaying(false);
+            handleNext();
+        };
+        
+        audio.oncanplaythrough = () => {
+            if (audioElementRef.current !== audio) return; // Prevent ghost playback
+            setAudioLoading(false);
+            audio.play().catch(e => console.error("Playback failed", e));
+            setIsAudioPlaying(true);
+        };
+        
+        audio.onerror = () => {
+            if (audioElementRef.current !== audio) return;
+            console.error("Audio playback error");
+            setAudioLoading(false);
+        };
+        
+        audio.load();
+    } catch (error) {
+        console.error("Failed to setup audio", error);
+        setAudioLoading(false);
+    }
+  };
+
+  const toggleAudio = () => {
+      if (isAudioPlaying) {
+          stopAudio();
+      } else {
+          // Re-play current page audio
+          if (currentPage > 0 && currentPage <= story.pages.length) {
+             const pageData = story.pages[currentPage - 1];
+             if (pageData.audioBase64) {
+                 playAudio(pageData.audioBase64);
+             }
+          }
+      }
+  };
+
+  // Auto-play effect when changing pages
+  useEffect(() => {
+    stopAudio(); // Stop previous page audio immediately
+
+    if (currentPage > 0 && currentPage <= story.pages.length) {
+        const pageData = story.pages[currentPage - 1];
+        if (pageData.audioBase64) {
+            // Small delay to ensure transition feels smooth and context is ready
+            const timer = setTimeout(() => {
+                playAudio(pageData.audioBase64);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }
+  }, [currentPage, story.pages]);
+
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage(c => c + 1);
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 0) setCurrentPage(c => c - 1);
+  };
+
+  const handleRestart = () => {
+    setCurrentPage(0);
+  }
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setFeedbackSent(true);
+      await saveFeedback({
+        rating,
+        comment,
+        storyTitle: story.title,
+        userEmail: userEmail ?? null,
+      });
+  }
+
+  // PDF Generation Helper
+  const generatePDF = async () => {
+    setIsGeneratingPDF(true);
+    setTimeout(async () => {
+        try {
+            const doc = new jsPDF({
+                orientation: 'p',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Helper to add watermark
+            const addWatermark = (yPos: number) => {
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                
+                // Shadow (Simulated)
+                doc.setTextColor(0, 0, 0);
+                doc.text("@ankaracocuketkinlikler", 105.3, yPos + 0.3, { align: 'center' });
+                
+                // Text
+                doc.setTextColor(255, 255, 255);
+                doc.text("@ankaracocuketkinlikler", 105, yPos, { align: 'center' });
+                
+                // Reset to black for normal text
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("helvetica", "normal");
+            };
+
+            // Turkish char map for basic ASCII support in default PDF fonts
+            const normalizeText = (str: string) => {
+                return str.replace(/ğ/g, "g").replace(/Ğ/g, "G")
+                          .replace(/ü/g, "u").replace(/Ü/g, "U")
+                          .replace(/ş/g, "s").replace(/Ş/g, "S")
+                          .replace(/ı/g, "i").replace(/İ/g, "I")
+                          .replace(/ö/g, "o").replace(/Ö/g, "O")
+                          .replace(/ç/g, "c").replace(/Ç/g, "C")
+                          .replace(/[^a-zA-Z0-0_]/g, "_"); // Added more strict sanitization for filenames
+            };
+
+            // Cover Page
+            if (story.coverImageUrl) {
+                doc.addImage(story.coverImageUrl, 'PNG', 20, 40, 170, 170);
+                addWatermark(205); // Position inside the cover image at bottom
+            }
+            
+            doc.setFontSize(24);
+            doc.text(normalizeText(story.title), 105, 230, { align: 'center', maxWidth: 170 });
+            doc.setFontSize(12);
+            doc.text(normalizeText(story.summary), 105, 250, { align: 'center', maxWidth: 150 });
+            
+            // Story Pages
+            story.pages.forEach((page, index) => {
+                doc.addPage();
+                // Image
+                if (page.imageUrl) {
+                    doc.addImage(page.imageUrl, 'PNG', 20, 20, 170, 150);
+                    addWatermark(165); // Position inside the story image at bottom
+                }
+                
+                // Text (Bottom half)
+                doc.setFontSize(14);
+                const splitText = doc.splitTextToSize(normalizeText(page.text), 170);
+                doc.text(splitText, 20, 190);
+                
+                // Footer
+                doc.setFontSize(10);
+                doc.text(`Sayfa ${page.pageNumber}`, 105, 280, { align: 'center' });
+            });
+
+            const safeFileName = normalizeText(story.title.replace(/\s+/g, '_'));
+            const pdfArrayBuffer = doc.output('arraybuffer');
+            const blob = new Blob([pdfArrayBuffer], { type: 'application/pdf' });
+            const file = new File([blob], `${safeFileName}_Masal.pdf`, { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+
+            setReadyPdfFile(file);
+            setReadyPdfUrl(url);
+
+            setModalType('pdf');
+            setShowDownloadModal(true);
+
+        } catch (e) {
+            console.error("PDF Error", e);
+            alert("PDF oluşturulurken bir hata oluştu.");
+        } finally {
+            setIsGeneratingPDF(false);
+        }
+    }, 100);
+  };
+
+
+
+  // Native MP3 Audio Download Helper
+  const generateAudio = async () => {
+    setIsDownloadingAudio(true);
+    setTimeout(async () => {
+        try {
+           const byteArrays = [];
+           for (const page of story.pages) {
+               if (page.audioBase64) {
+                   const binaryString = atob(page.audioBase64);
+                   const len = binaryString.length;
+                   const bytes = new Uint8Array(len);
+                   for (let i = 0; i < len; i++) {
+                       bytes[i] = binaryString.charCodeAt(i);
+                   }
+                   byteArrays.push(bytes);
+               }
+           }
+
+           if (byteArrays.length === 0) {
+               alert("İndirilecek ses bulunamadı.");
+               setIsDownloadingAudio(false);
+               return;
+           }
+
+           // Simply merge the binary data of MP3 blobs
+           const mergedBlob = new Blob(byteArrays, { type: 'audio/mpeg' });
+           const url = URL.createObjectURL(mergedBlob);
+           const safeFileName = story.title.replace(/ğ/g, "g").replace(/Ğ/g, "G").replace(/ü/g, "u").replace(/Ü/g, "U").replace(/ş/g, "s").replace(/Ş/g, "S").replace(/ı/g, "i").replace(/İ/g, "I").replace(/ö/g, "o").replace(/Ö/g, "O").replace(/ç/g, "c").replace(/Ç/g, "C").replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+           const file = new File([mergedBlob], `${safeFileName}_Sesli_Masal.mp3`, { type: 'audio/mpeg' });
+
+           setReadyAudioFile(file);
+           setReadyAudioUrl(url);
+
+           setModalType('audio');
+           setShowDownloadModal(true);
+
+        } catch (e) {
+          console.error("Audio Download Error", e);
+          alert("Ses dosyası oluşturulurken bir hata oluştu.");
+        } finally {
+          setIsDownloadingAudio(false);
+        }
+    }, 100);
+  };
+
+  // Reusable Watermark Component
+  const Watermark = () => (
+    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-1.5 pointer-events-none select-none opacity-90">
+        <Instagram className="w-4 h-4 text-white drop-shadow-md" strokeWidth={2.5} />
+        <span className="text-xs sm:text-sm font-bold text-white drop-shadow-md font-sans tracking-wider">
+        @ankaracocuketkinlikler
+        </span>
+    </div>
+  );
+
+  // Render Cover
+  if (currentPage === 0) {
+    return (
+      <div 
+        className="flex flex-col items-center justify-center min-h-[600px] animate-fade-in w-full"
+      >
+        <div className="relative w-full max-w-md aspect-[3/4] bg-gradient-to-br from-indigo-600 to-purple-700 rounded-r-3xl rounded-l-lg shadow-2xl border-l-8 border-indigo-900 flex flex-col items-center justify-start pt-8 text-center text-white transform transition hover:scale-[1.01] overflow-hidden">
+           
+           {/* Cover Image Background or Embedded */}
+           {story.coverImageUrl && (
+               <div className="absolute inset-0 opacity-40 pointer-events-none">
+                   <img src={story.coverImageUrl} className="w-full h-full object-cover" alt="Cover Background" />
+                   <div className="absolute inset-0 bg-gradient-to-t from-indigo-900 via-indigo-900/60 to-transparent"></div>
+               </div>
+           )}
+
+           <div className="relative z-10 px-6 w-full h-full flex flex-col items-center justify-center">
+                <BookOpen className="w-12 h-12 text-yellow-300 mx-auto mb-4 drop-shadow-lg" />
+                <h1 className="text-4xl md:text-5xl font-bold handwritten leading-tight text-yellow-100 mb-4 drop-shadow-md">
+                {story.title}
+                </h1>
+                <div className="w-24 h-1 bg-yellow-400/80 mx-auto rounded-full mb-6"></div>
+
+                <p className="text-indigo-100 text-lg italic font-medium px-2 drop-shadow-sm mb-8">
+                "{story.summary}"
+                </p>
+                
+                {story.coverImageUrl && (
+                    <div className="w-32 h-32 rounded-full border-4 border-white/30 shadow-lg overflow-hidden mb-8">
+                        <img src={story.coverImageUrl} className="w-full h-full object-cover" alt="Cover Circle" />
+                    </div>
+                )}
+
+                <div className="mt-auto mb-12 text-sm font-bold text-yellow-200/80 uppercase tracking-widest">
+                Özel Basım Masal Kitabı
+                </div>
+           </div>
+
+           {/* Watermark on Cover */}
+           <Watermark />
+
+           {/* Book Texture Overlay */}
+           <div className="absolute inset-0 bg-black opacity-10 pointer-events-none rounded-r-3xl rounded-l-lg z-20"></div>
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4">
+             <button 
+                onClick={handleNext}
+                className="col-span-1 sm:col-span-2 bg-white text-indigo-600 px-6 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2"
+              >
+                Kitabı Aç <ArrowRight className="w-5 h-5" />
+              </button>
+
+
+
+
+
+              <button 
+                onClick={onReset}
+                className="col-span-1 sm:col-span-2 bg-yellow-400 text-indigo-900 px-6 py-3 rounded-full font-bold shadow-lg hover:bg-yellow-300 transition flex items-center justify-center gap-2"
+              >
+                <RefreshCcw className="w-5 h-5" /> Yeni Masal Yaz
+              </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Back Cover
+  if (currentPage === totalPages) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[600px] animate-fade-in w-full"
+        >
+          <div className="relative w-full max-w-md min-h-[500px] bg-indigo-900 rounded-l-3xl rounded-r-lg shadow-2xl border-r-8 border-indigo-950 flex flex-col items-center justify-center p-8 text-center text-white overflow-hidden">
+            <h2 className="text-3xl font-bold handwritten mb-2 text-yellow-100">SON</h2>
+            <p className="text-indigo-200 mb-6">Okuduğunuz için teşekkürler!</p>
+            
+            <div className="space-y-4 w-full px-4 relative z-10 mb-8">
+                {/* Feedback Form */}
+                {!feedbackSent ? (
+                    <form onSubmit={handleFeedbackSubmit} className="bg-white/10 backdrop-blur-sm p-4 rounded-xl mb-4 border border-white/20">
+                        <h3 className="text-sm font-bold text-indigo-100 mb-2 flex items-center justify-center gap-2">
+                            <MessageSquare className="w-4 h-4" /> Masalı beğendiniz mi?
+                        </h3>
+                        <div className="flex justify-center gap-2 mb-3">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                                <button 
+                                    key={s} 
+                                    type="button" 
+                                    onClick={() => setRating(s)}
+                                    className="focus:outline-none transition-transform hover:scale-110"
+                                >
+                                    <Star 
+                                        className={`w-6 h-6 ${s <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-400'}`} 
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                        <textarea 
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            placeholder="Görüşlerinizi yazın..."
+                            className="w-full bg-black/20 text-white text-sm p-2 rounded-lg border border-white/10 placeholder-indigo-300/50 resize-none h-16 mb-2 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                        />
+                        <button 
+                            type="submit" 
+                            disabled={rating === 0}
+                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 rounded-lg transition disabled:opacity-50"
+                        >
+                            Gönder
+                        </button>
+                    </form>
+                ) : (
+                    <div className="bg-green-500/20 backdrop-blur-sm p-4 rounded-xl mb-4 border border-green-500/30 animate-fade-in">
+                        <p className="text-green-100 font-bold text-sm">Geri bildiriminiz için teşekkürler! ✨</p>
+                    </div>
+                )}
+
+
+
+
+
+                <div className="flex gap-2">
+                    <button
+                    onClick={handleRestart}
+                    className="flex-1 bg-indigo-800/60 text-white px-2 py-3 rounded-xl font-bold hover:bg-indigo-700 transition flex flex-col items-center justify-center gap-1 shadow-lg border border-indigo-500 text-xs sm:text-sm"
+                    >
+                    <RotateCcw className="w-5 h-5" /> En Başa Dön
+                    </button>
+                </div>
+
+                <button
+                onClick={onReset}
+                className="w-full bg-yellow-400 text-indigo-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-300 transition flex items-center justify-center gap-2 shadow-lg mt-2"
+                >
+                <RefreshCcw className="w-5 h-5" /> Yeni Masal Yaz
+                </button>
+            </div>
+
+            {/* Watermark on Back Cover */}
+            <Watermark />
+          </div>
+          <button 
+            onClick={handlePrev}
+            className="mt-8 text-slate-500 font-bold hover:text-indigo-600 flex items-center gap-2"
+          >
+            <ArrowLeft className="w-5 h-5" /> Geri Dön
+          </button>
+        </div>
+    );
+  }
+
+  // Render Story Page
+  const pageData = story.pages[currentPage - 1];
+  const hasAudio = !!pageData.audioBase64;
+
+  return (
+    <div 
+        className="w-full max-w-5xl mx-auto animate-fade-in"
+    >
+      {/* Pagination & Controls Header */}
+      <div className="flex justify-between items-center mb-4 px-4">
+        <button onClick={handlePrev} className="p-2 hover:bg-slate-200 rounded-full text-slate-600 transition">
+          <ArrowLeft className="w-6 h-6" />
+        </button>
+        <span className="font-bold text-slate-400 text-sm uppercase tracking-wider">
+          Sayfa {currentPage} / {story.pages.length}
+        </span>
+        <button onClick={handleNext} className="p-2 hover:bg-slate-200 rounded-full text-indigo-600 transition">
+          <ArrowRight className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Book Spread Layout */}
+      <div className="bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px] border border-slate-200">
+        
+        {/* Left Page (Image) */}
+        <div className="w-full md:w-1/2 bg-slate-100 relative overflow-hidden flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-200 min-h-[300px] md:min-h-auto group">
+            {pageData.imageUrl ? (
+                <img 
+                    src={pageData.imageUrl} 
+                    alt={`Sayfa ${currentPage} ilüstrasyonu`} 
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                />
+            ) : (
+                <div className="flex flex-col items-center justify-center text-slate-400 h-full p-6 text-center">
+                    <div className="bg-orange-100 text-orange-400 w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <p className="text-sm font-medium">Bu sayfa için görsel oluşturulamadı. Masal metniyle devam edebilirsiniz.</p>
+                </div>
+            )}
+             
+             {/* Watermark on Story Page (On the image to avoid overlapping text on mobile) */}
+             <Watermark />
+
+             {/* Paper Texture Overlay */}
+             {/* <div className="absolute inset-0 opacity-10 pointer-events-none" style={{backgroundImage: 'url("https://www.transparenttextures.com/patterns/cream-paper.png")'}}></div> */}
+        </div>
+
+        {/* Right Page (Text) */}
+        <div className="w-full md:w-1/2 flex flex-col relative bg-[#fffdf5]">
+            {/* Audio Toolbar - Positioned at the top of the text container, separate from text */}
+            <div className="w-full px-6 py-4 flex items-center justify-end border-b border-slate-100">
+                {hasAudio && (
+                    <button 
+                        onClick={toggleAudio}
+                        disabled={audioLoading}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all shadow-sm ${
+                            isAudioPlaying 
+                            ? 'bg-indigo-100 text-indigo-600' 
+                            : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
+                        }`}
+                    >
+                        {audioLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : isAudioPlaying ? (
+                            <>
+                                <Pause className="w-4 h-4 fill-current" />
+                                Durdur
+                            </>
+                        ) : (
+                            <>
+                                <Play className="w-4 h-4 fill-current" />
+                                Oku
+                            </>
+                        )}
+                    </button>
+                )}
+            </div>
+
+            <div className="flex-1 p-8 md:p-12 flex flex-col justify-center">
+                <div className="prose prose-lg md:prose-xl text-slate-800 font-medium leading-relaxed handwritten">
+                    <p className="text-xl md:text-2xl text-justify">
+                        {pageData.text}
+                    </p>
+                </div>
+                
+                <div className="mt-8 flex justify-center">
+                    <div className="w-16 h-1 bg-indigo-100 rounded-full"></div>
+                </div>
+
+                 {/* Page Number Footer */}
+                 <div className="mt-auto pt-6 text-right text-slate-300 font-serif font-bold text-lg">
+                     {currentPage}
+                 </div>
+            </div>
+             
+             {/* Paper Texture Overlay */}
+             {/* <div className="absolute inset-0 opacity-30 pointer-events-none" style={{backgroundImage: 'url("https://www.transparenttextures.com/patterns/cream-paper.png")'}}></div> */}
+        </div>
+
+      </div>
+
+      {showDownloadModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border-4 border-indigo-100 text-center relative animate-pop-in pointer-events-auto">
+            <button 
+              onClick={() => setShowDownloadModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition text-2xl font-medium"
+            >
+              ✕
+            </button>
+            
+            <div className="bg-indigo-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Download className="w-8 h-8 text-indigo-600" />
+            </div>
+            
+            <h3 className="text-xl font-bold text-indigo-900 mb-2">
+              {modalType === 'pdf' ? 'PDF İndir / Paylaş' : 'Sesi İndir / Paylaş'}
+            </h3>
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              Mobil uygulama kısıtlamaları nedeniyle doğrudan dosya indirmek engellenmiş olabilir. Aşağıdaki seçenekleri kullanabilirsiniz:
+            </p>
+            
+            <div className="space-y-3">
+              <a 
+                href={modalType === 'pdf' ? (readyPdfUrl || '#') : (readyAudioUrl || '#')}
+                download={modalType === 'pdf' ? `${story.title}_Masal.pdf` : `${story.title}_Sesli_Masal.wav`}
+                className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow"
+                onClick={() => setShowDownloadModal(false)}
+              >
+                <Download className="w-5 h-5" />
+                İndir (Cihaza Kaydet)
+              </a>
+              
+              <button 
+                onClick={() => {
+                  setShowDownloadModal(false);
+                  const file = modalType === 'pdf' ? readyPdfFile : readyAudioFile;
+                  if (file && navigator.share) {
+                      navigator.share({
+                          files: [file],
+                          title: story.title,
+                          text: 'Masal Atölyesi tarafından oluşturulmuş sihirli masalım!'
+                      }).catch(err => {
+                          console.log("Paylaşım başarısız veya iptal:", err);
+                      });
+                  } else {
+                      alert("Cihazınız paylaşım özelliğini desteklemiyor.");
+                  }
+                }}
+                className="w-full py-3 bg-pink-500 text-white font-bold rounded-xl hover:bg-pink-600 transition flex items-center justify-center gap-2 shadow"
+              >
+                <Share2 className="w-5 h-5" />
+                Uygulamada Paylaş / WhatsApp
+              </button>
+              
+              <button 
+                onClick={handleCopyLink}
+                className="w-full py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition flex items-center justify-center gap-2 border border-slate-200"
+              >
+                <Share2 className="w-5 h-5" />
+                {copySuccess ? 'Bağlantı Kopyalandı! ✨' : 'Sayfa Linkini Kopyala'}
+              </button>
+            </div>
+            
+            <p className="text-[10px] text-slate-400 mt-4 leading-tight">
+              *Dosya inmezse kopyaladığınız linki Chrome/Safari tarayıcısına yapıştırarak masalınızı indirebilirsiniz.
+            </p>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+export default StoryViewer;
