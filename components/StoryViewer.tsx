@@ -32,11 +32,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   const handleShare = async () => {
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
-    const shareText = `✨ Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk!\n\nÇocuğunuza özel sihirli masallar oluşturmak için tıklayın: ${appUrl}`;
+    const shareText = `✨ Masal Atölyesi'nde "${story.title}" isimli harika bir masal oluşturduk!\n\nÇocuğunuza özel masallar oluşturmak için tıklayın: ${appUrl}`;
     
     let filesToShare: File[] = [];
     
-    // Kapak resmini dosyaya dönüştür (Instagram Story / WhatsApp Görsel Paylaşımı için)
     if (story.coverImageUrl) {
       try {
         const response = await fetch(story.coverImageUrl);
@@ -48,21 +47,13 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
       }
     }
 
-    // Panoya kopyalama (Güvenli Fallback)
-    try {
-      await navigator.clipboard.writeText(shareText);
-    } catch (e) {
-      console.error("Panoya kopyalama basarisiz", e);
-    }
-
     if (navigator.share) {
       try {
         if (filesToShare.length > 0 && typeof navigator.canShare === 'function' && navigator.canShare({ files: filesToShare })) {
           await navigator.share({
             files: filesToShare,
             title: story.title,
-            text: shareText,
-            url: appUrl
+            text: shareText
           });
           return;
         } else {
@@ -77,6 +68,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         console.log("Navigator share iptal edildi veya başarısız", err);
       }
     }
+
+    // Direct WhatsApp Fallback if Web Share is unavailable
+    const encodedText = encodeURIComponent(shareText);
+    window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
   };
 
   // Feedback State
@@ -389,9 +384,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   if (currentPage === 0) {
     return (
       <div 
-        className="flex flex-col items-center justify-center min-h-[600px] animate-fade-in w-full"
+        className="flex flex-col items-center justify-center min-h-[500px] max-h-[85vh] animate-fade-in w-full my-auto"
       >
-        <div className="relative w-full max-w-md aspect-[3/4] bg-gradient-to-br from-indigo-600 to-purple-700 rounded-r-3xl rounded-l-lg shadow-2xl border-l-8 border-indigo-900 flex flex-col items-center justify-start pt-8 text-center text-white transform transition hover:scale-[1.01] overflow-hidden">
+        <div className="relative w-full max-w-sm aspect-[3/4] bg-gradient-to-br from-indigo-600 to-purple-700 rounded-r-3xl rounded-l-lg shadow-2xl border-l-8 border-indigo-900 flex flex-col items-center justify-start pt-6 text-center text-white transform transition hover:scale-[1.01] overflow-hidden">
            
            {/* Cover Image Background or Embedded */}
            {story.coverImageUrl && (
@@ -401,30 +396,30 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
                </div>
            )}
 
-           <div className="relative z-10 px-6 w-full h-full flex flex-col items-center justify-center">
-                <BookOpen className="w-12 h-12 text-yellow-300 mx-auto mb-4 drop-shadow-lg" />
-                <h1 className="text-4xl md:text-5xl font-bold handwritten leading-tight text-yellow-100 mb-4 drop-shadow-md">
+           <div className="relative z-10 px-5 w-full h-full flex flex-col items-center justify-center">
+                <BookOpen className="w-10 h-10 text-yellow-300 mx-auto mb-3 drop-shadow-lg" />
+                <h1 className="text-3xl md:text-4xl font-bold handwritten leading-tight text-yellow-100 mb-3 drop-shadow-md">
                 {story.title}
                 </h1>
-                <div className="w-24 h-1 bg-yellow-400/80 mx-auto rounded-full mb-6"></div>
+                <div className="w-20 h-1 bg-yellow-400/80 mx-auto rounded-full mb-4"></div>
 
-                <p className="text-indigo-100 text-lg italic font-medium px-2 drop-shadow-sm mb-8">
+                <p className="text-indigo-100 text-base italic font-medium px-2 drop-shadow-sm mb-5">
                 "{story.summary}"
                 </p>
                 
                 {story.coverImageUrl && (
-                    <div className="w-32 h-32 rounded-full border-4 border-white/30 shadow-lg overflow-hidden mb-8">
+                    <div className="w-24 h-24 rounded-full border-4 border-white/30 shadow-lg overflow-hidden mb-5">
                         <img src={story.coverImageUrl} className="w-full h-full object-cover" alt="Cover Circle" />
                     </div>
                 )}
 
-                <div className="mt-auto mb-10 flex flex-col items-center gap-1.5 z-20">
-                  <div className="text-xs font-bold text-yellow-200/90 uppercase tracking-widest">
+                <div className="mt-auto mb-6 flex flex-col items-center gap-1 z-20">
+                  <div className="text-[11px] font-bold text-yellow-200/90 uppercase tracking-widest">
                     Özel Basım Masal Kitabı
                   </div>
-                  <div className="flex items-center gap-1.5 select-none opacity-95 bg-black/20 px-3 py-1 rounded-full border border-white/10">
-                      <Instagram className="w-3.5 h-3.5 text-white drop-shadow" strokeWidth={2.5} />
-                      <span className="text-xs font-bold text-white drop-shadow font-sans tracking-wider">
+                  <div className="flex items-center gap-1.5 select-none opacity-95 bg-black/20 px-2.5 py-0.5 rounded-full border border-white/10">
+                      <Instagram className="w-3 h-3 text-white drop-shadow" strokeWidth={2.5} />
+                      <span className="text-[11px] font-bold text-white drop-shadow font-sans tracking-wider">
                       @ankaracocuketkinlikler
                       </span>
                   </div>
@@ -435,26 +430,26 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
            <div className="absolute inset-0 bg-black opacity-10 pointer-events-none rounded-r-3xl rounded-l-lg z-20"></div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-sm px-2">
              <button 
                 onClick={handleNext}
-                className="col-span-1 sm:col-span-2 bg-white text-indigo-600 px-6 py-3 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2 text-base"
+                className="col-span-1 sm:col-span-2 bg-white text-indigo-600 px-5 py-2.5 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2 text-sm"
               >
-                Kitabı Aç <ArrowRight className="w-5 h-5" />
+                Kitabı Aç <ArrowRight className="w-4 h-4" />
               </button>
 
               <button 
                 onClick={handleShare}
-                className="col-span-1 bg-pink-500 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-sm"
+                className="col-span-1 bg-pink-500 text-white px-4 py-2.5 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-xs"
               >
-                <Share2 className="w-5 h-5" /> Hikayede / DM'de Paylaş
+                <Share2 className="w-4 h-4" /> Hikayede / DM'de Paylaş
               </button>
 
               <button 
                 onClick={onReset}
-                className="col-span-1 bg-yellow-400 text-indigo-900 px-6 py-3 rounded-full font-bold shadow-lg hover:bg-yellow-300 transition flex items-center justify-center gap-2 text-sm"
+                className="col-span-1 bg-yellow-400 text-indigo-900 px-4 py-2.5 rounded-full font-bold shadow-lg hover:bg-yellow-300 transition flex items-center justify-center gap-2 text-xs"
               >
-                <RefreshCcw className="w-5 h-5" /> Yeni Masal Yaz
+                <RefreshCcw className="w-4 h-4" /> Yeni Masal Yaz
               </button>
         </div>
       </div>

@@ -82,12 +82,13 @@ app.post('/api/generate-story', async (req, res) => {
           KURALLAR:
           1. Hikaye dili TÜRKÇE olmalıdır.
           2. Dil ve anlatım şu yaş grubu kuralına uymalıdır: ${ageConstraints}
-          3. Asla korku, şiddet veya kötü örnek içermemelidir.
-          4. Çıktı tam olarak 5 sayfa olmalıdır.
-          5. Her sayfa için bir "imagePrompt" (Görsel İstemi) yazılmalıdır. 
-          6. Ayrıca kitap kapağı için "coverImagePrompt" yazılmalıdır.
-          7. imagePrompt İNGİLİZCE olmalı, sahneyi detaylı betimlemeli ve stil olarak "Whimsical digital illustration, soft colors, Pixar style 3D render" belirtilmelidir.
-          8. ÖNEMLİ: "imagePrompt" içinde karakterin fiziksel özelliklerini (${characterAppearance || `a ${input.age} year old ${input.gender}`}) HER SEFERİNDE tutarlı bir şekilde belirt.
+          3. ÖNEMLİ: Hikaye metni içinde ASLA "6-8 yaşında", "5 yaşında", "3 yaşında" gibi sayısal yaş ifadeleri KULLANMA. Karakteri sadece "küçük Ayşe", "sevimli Ali" gibi tanıt.
+          4. Asla korku, şiddet veya kötü örnek içermemelidir.
+          5. Çıktı tam olarak 5 sayfa olmalıdır.
+          6. Her sayfa için bir "imagePrompt" (Görsel İstemi) yazılmalıdır. 
+          7. Ayrıca kitap kapağı için "coverImagePrompt" yazılmalıdır.
+          8. imagePrompt İNGİLİZCE olmalı, sahneyi detaylı betimlemeli ve stil olarak "Whimsical digital illustration, soft colors, Pixar style 3D render" belirtilmelidir.
+          9. ÖNEMLİ: "imagePrompt" içinde karakterin fiziksel özelliklerini (${characterAppearance || `a ${input.gender}`}) HER SEFERİNDE tutarlı bir şekilde belirt.
 
           JSON FORMATINDA yanıt ver.
         `;
