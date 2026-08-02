@@ -64,20 +64,34 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
                   </p>
                 </div>
                 
-                <div className="flex items-center justify-between mt-3">
+                <div className="flex items-center justify-between mt-3 gap-2">
                   <button 
                     onClick={() => onOpenStory(saved.story)}
-                    className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition"
+                    className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition"
                   >
                     Masalı Aç
                   </button>
+
+                  <button 
+                    onClick={() => {
+                      const appUrl = "https://masal-atolyesi-v2.vercel.app/";
+                      const shareText = `✨ Masal Atölyesi'nde "${saved.story.title}" isimli harika bir masal oluşturduk!\n\nSiz de çocuğunuza özel masal oluşturmak için tıklayın: ${appUrl}`;
+                      if (navigator.share) {
+                        navigator.share({ title: saved.story.title, text: shareText, url: appUrl }).catch(() => {});
+                      }
+                    }}
+                    className="bg-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-pink-600 transition flex items-center gap-1"
+                  >
+                    Paylaş
+                  </button>
+
                   <button 
                     onClick={() => {
                         if (window.confirm("Bu masalı silmek istediğinize emin misiniz?")) {
                             onDeleteStory(saved.id);
                         }
                     }}
-                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition ml-auto"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

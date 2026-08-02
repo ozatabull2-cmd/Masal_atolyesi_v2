@@ -77,8 +77,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         console.log("Navigator share iptal edildi veya başarısız", err);
       }
     }
-
-    alert("✨ Harika! Masal davet metni ve bağlantı panoya kopyalandı.\n\nŞimdi WhatsApp veya Instagram'a gidip mesaj alanına 'Yapıştır' diyerek sevdiklerinizle paylaşabilirsiniz!");
   };
 
   // Feedback State
@@ -420,13 +418,18 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
                     </div>
                 )}
 
-                <div className="mt-auto mb-12 text-sm font-bold text-yellow-200/80 uppercase tracking-widest">
-                Özel Basım Masal Kitabı
+                <div className="mt-auto mb-10 flex flex-col items-center gap-1.5 z-20">
+                  <div className="text-xs font-bold text-yellow-200/90 uppercase tracking-widest">
+                    Özel Basım Masal Kitabı
+                  </div>
+                  <div className="flex items-center gap-1.5 select-none opacity-95 bg-black/20 px-3 py-1 rounded-full border border-white/10">
+                      <Instagram className="w-3.5 h-3.5 text-white drop-shadow" strokeWidth={2.5} />
+                      <span className="text-xs font-bold text-white drop-shadow font-sans tracking-wider">
+                      @ankaracocuketkinlikler
+                      </span>
+                  </div>
                 </div>
            </div>
-
-           {/* Watermark on Cover */}
-           <Watermark />
 
            {/* Book Texture Overlay */}
            <div className="absolute inset-0 bg-black opacity-10 pointer-events-none rounded-r-3xl rounded-l-lg z-20"></div>
@@ -514,23 +517,34 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
                 <div className="flex gap-2">
                     <button
-                    onClick={handleRestart}
-                    className="flex-1 bg-indigo-800/60 text-white px-2 py-3 rounded-xl font-bold hover:bg-indigo-700 transition flex flex-col items-center justify-center gap-1 shadow-lg border border-indigo-500 text-xs sm:text-sm"
+                    onClick={handleShare}
+                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-3 rounded-xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg border border-pink-400 text-xs sm:text-sm"
                     >
-                    <RotateCcw className="w-5 h-5" /> En Başa Dön
+                    <Share2 className="w-4 h-4" /> Masalı Paylaş
+                    </button>
+
+                    <button
+                    onClick={handleRestart}
+                    className="flex-1 bg-indigo-800/60 text-white px-3 py-3 rounded-xl font-bold hover:bg-indigo-700 transition flex items-center justify-center gap-1 shadow-lg border border-indigo-500 text-xs sm:text-sm"
+                    >
+                    <RotateCcw className="w-4 h-4" /> En Başa Dön
                     </button>
                 </div>
 
                 <button
                 onClick={onReset}
-                className="w-full bg-yellow-400 text-indigo-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-300 transition flex items-center justify-center gap-2 shadow-lg mt-2"
+                className="w-full bg-yellow-400 text-indigo-900 px-6 py-3 rounded-xl font-bold hover:bg-yellow-300 transition flex items-center justify-center gap-2 shadow-lg mt-2 text-sm"
                 >
                 <RefreshCcw className="w-5 h-5" /> Yeni Masal Yaz
                 </button>
             </div>
 
-            {/* Watermark on Back Cover */}
-            <Watermark />
+            <div className="flex items-center gap-1.5 select-none opacity-90 mb-4 z-20">
+                <Instagram className="w-3.5 h-3.5 text-white drop-shadow" strokeWidth={2.5} />
+                <span className="text-xs font-bold text-white drop-shadow font-sans tracking-wider">
+                @ankaracocuketkinlikler
+                </span>
+            </div>
           </div>
           <button 
             onClick={handlePrev}
@@ -556,19 +570,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
           <ArrowLeft className="w-6 h-6" />
         </button>
         
-        <div className="flex items-center gap-3">
-          <span className="font-bold text-slate-400 text-sm uppercase tracking-wider">
-            Sayfa {currentPage} / {story.pages.length}
-          </span>
-          
-          <button 
-            onClick={handleShare} 
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-full font-bold text-xs shadow transition"
-            title="Masalı Paylaş"
-          >
-            <Share2 className="w-3.5 h-3.5" /> Paylaş
-          </button>
-        </div>
+        <span className="font-bold text-slate-400 text-sm uppercase tracking-wider">
+          Sayfa {currentPage} / {story.pages.length}
+        </span>
 
         <button onClick={handleNext} className="p-2 hover:bg-slate-200 rounded-full text-indigo-600 transition">
           <ArrowRight className="w-6 h-6" />
