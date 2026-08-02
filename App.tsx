@@ -255,6 +255,7 @@ function App() {
       }
 
       // 2. Start Image and Audio Generation Phase
+      sessionStorage.setItem('masal_creating', 'true');
       setAppState(AppState.GeneratingImages);
       setLoadingProgress(0);
 
@@ -332,12 +333,14 @@ function App() {
 
       setStoryData(finalStory);
       await saveStory(finalStory);
+      sessionStorage.removeItem('masal_creating');
       localStorage.removeItem('masal_active_generation');
       
       setAppState(AppState.Reading);
 
     } catch (err: any) {
       console.error(err);
+      sessionStorage.removeItem('masal_creating');
       localStorage.removeItem('masal_active_generation');
       setErrorMsg("Üzgünüz, masalı oluştururken sihirli bir hata oluştu. Lütfen tekrar deneyin.");
       setAppState(AppState.Error);
