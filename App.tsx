@@ -128,6 +128,26 @@ function App() {
 
   const { savedStories, saveStory, deleteStory } = useStoryLibrary();
 
+  // Handle Browser / WebView Back Button (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      // When back button is pressed from Reading or Library, transition to Input
+      setAppState(prev => (prev !== AppState.Input ? AppState.Input : AppState.Input));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const changeAppState = (newState: AppState) => {
+    if (newState !== AppState.Input && appState === AppState.Input) {
+      try {
+        window.history.pushState({ appState: newState }, '');
+      } catch (e) { /* ignore */ }
+    }
+    setAppState(newState);
+  };
+
   useEffect(() => {
     checkQuota(userEmail);
   }, []);
@@ -343,7 +363,7 @@ function App() {
       sessionStorage.removeItem('masal_creating');
       localStorage.removeItem('masal_active_generation');
       
-      setAppState(AppState.Reading);
+      changeAppState(AppState.Reading);
 
     } catch (err: any) {
       console.error(err);
@@ -376,7 +396,7 @@ function App() {
             <div className="w-full flex flex-col items-center">
                 {savedStories.length > 0 && (
                   <button
-                    onClick={() => setAppState(AppState.Library)}
+                    onClick={() => changeAppState(AppState.Library)}
                     className="mb-10 group relative flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 rounded-full font-extrabold text-white shadow-[0_8px_30px_rgba(30,58,138,0.5)] hover:shadow-[0_8px_40px_rgba(30,64,175,0.7)] hover:-translate-y-1 transition-all duration-300 border-[3px] border-indigo-400/50 animate-fade-in"
                   >
                     {/* Glowing background blur effect */}
@@ -413,7 +433,7 @@ function App() {
                   stories={savedStories} 
                   onOpenStory={(story) => {
                       setStoryData(story);
-                      setAppState(AppState.Reading);
+                      changeAppState(AppState.Reading);
                   }}
                   onDeleteStory={deleteStory}
                   onBack={() => setAppState(AppState.Input)} 

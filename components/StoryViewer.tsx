@@ -32,19 +32,24 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   const handleShare = async () => {
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
-    const shareText = `Ankara Çocuk Etkinlikler'de harika bir masal buldum! İncelemek için tıkla: ${appUrl}`;
+    const shareText = `Ankara Çocuk Etkinlikler'de "${story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}`;
 
-    if (navigator.share) {
+    if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({
           title: story.title,
-          text: shareText
+          text: shareText,
+          url: appUrl
         });
         return;
       } catch (err) {
-        console.log("Navigator share canceled", err);
+        console.log("Navigator share canceled or unsupported", err);
       }
     }
+
+    // Fallback if navigator.share fails or is not available on mobile WebView
+    const encodedText = encodeURIComponent(shareText);
+    window.location.href = `https://api.whatsapp.com/send?text=${encodedText}`;
   };
 
   // Feedback State
@@ -128,6 +133,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         audio.onended = () => {
             if (audioElementRef.current !== audio) return;
             setIsAudioPlaying(false);
+            handleNext();
         };
         
         audio.oncanplaythrough = () => {
