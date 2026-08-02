@@ -40,20 +40,21 @@ export const useStoryLibrary = () => {
     loadLibrary();
   }, []);
 
-  const saveStory = async (story: StoryData) => {
+  const saveStory = async (story: StoryData, customId?: string) => {
     try {
-      const id = `story_${Date.now()}`;
+      const id = customId ? (customId.startsWith('story_') ? customId : `story_${customId}`) : `story_${Date.now()}`;
+      const existing = customId ? await get(id) : null;
       const newStory: SavedStory = {
         id,
-        date: Date.now(),
+        date: existing ? (existing as SavedStory).date : Date.now(),
         story
       };
       await set(id, newStory);
       await loadLibrary(); // Reload list
-      return true;
+      return id;
     } catch (e) {
       console.error("Failed to save story to IndexedDB", e);
-      return false;
+      return null;
     }
   };
 

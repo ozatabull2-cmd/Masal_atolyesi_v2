@@ -212,6 +212,7 @@ app.post('/api/generate-speech', async (req, res) => {
 
         // Phonetic normalization for Turkish story onomatopoeia sounds
         const cleanTextForTTS = text
+            .replace(/v\s*[\-\s\.]*\s*ı\s*[\-\s\.]*\s*z\s*[\-\s\.]*\s*z+/gi, "vızzz")
             .replace(/\bvızz+\b/gi, "vızzz")
             .replace(/\bvız\b/gi, "vızz")
             .replace(/\bcık\s+cık\b/gi, "cık cık")

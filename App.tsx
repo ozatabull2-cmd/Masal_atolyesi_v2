@@ -262,12 +262,15 @@ function App() {
         decrementQuota();
       }
 
+      // Create a single unique story ID for progressive updates
+      const currentStoryId = Date.now().toString();
+
       // Save initial story outline immediately to library so it is saved even if user leaves
       await saveStory({
         ...generatedStory,
         coverImageUrl: '',
         pages: generatedStory.pages.map(p => ({ ...p, imageUrl: '', audioBase64: '' }))
-      });
+      }, currentStoryId);
 
       // Set Cooldown Target (60 seconds from now)
       if (userRole !== 'admin') {
@@ -349,7 +352,7 @@ function App() {
             ...generatedStory,
             coverImageUrl: coverUrl,
             pages: pagesWithAssets
-          });
+          }, currentStoryId);
       }
 
       const finalStory = { 
@@ -359,7 +362,7 @@ function App() {
       };
 
       setStoryData(finalStory);
-      await saveStory(finalStory);
+      await saveStory(finalStory, currentStoryId);
       sessionStorage.removeItem('masal_creating');
       localStorage.removeItem('masal_active_generation');
       
