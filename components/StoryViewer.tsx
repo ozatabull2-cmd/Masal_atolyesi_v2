@@ -105,8 +105,15 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   const totalPages = story.pages.length + 1; // Cover + Story Pages
 
-  // Native HTML5 Audio Element Ref for MP3 playback
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  // Persistent single Audio Element Ref to bypass Android WebView autoplay restrictions
+  const sharedAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Warmup/unlock audio element during user touch gesture (like Kitabı Aç or Sonraki Sayfa)
+  const unlockAudioContext = () => {
+    if (!sharedAudioRef.current) {
+      sharedAudioRef.current = new Audio();
+    }
+  };
 
   // Stop playback when visibility changes
   useEffect(() => {
@@ -124,39 +131,37 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   }, []);
 
   const stopAudio = () => {
-    if (audioElementRef.current) {
+    if (sharedAudioRef.current) {
       try {
-        audioElementRef.current.oncanplaythrough = null;
-        audioElementRef.current.onerror = null;
-        audioElementRef.current.onended = null;
-        audioElementRef.current.pause();
-        audioElementRef.current.currentTime = 0;
-        audioElementRef.current.removeAttribute('src'); // clean src completely
-        audioElementRef.current.load(); // abort any pending downloads
+        sharedAudioRef.current.onerror = null;
+        sharedAudioRef.current.onended = null;
+        sharedAudioRef.current.pause();
+        sharedAudioRef.current.currentTime = 0;
       } catch(e) { /* ignore */ }
-      audioElementRef.current = null;
     }
     setIsAudioPlaying(false);
   };
 
   const playAudio = async (base64Data: string | undefined) => {
-    stopAudio(); // Ensure previous audio is stopped
-    
+    stopAudio();
     if (!base64Data) return;
 
     setAudioLoading(true);
     try {
-        const audio = new Audio(`data:audio/mpeg;base64,${base64Data}`);
-        audioElementRef.current = audio;
+        if (!sharedAudioRef.current) {
+          sharedAudioRef.current = new Audio();
+        }
+        const audio = sharedAudioRef.current;
+        audio.pause();
+        audio.currentTime = 0;
+        audio.src = `data:audio/mpeg;base64,${base64Data}`;
         
         audio.onended = () => {
-            if (audioElementRef.current !== audio) return;
             setIsAudioPlaying(false);
             handleNext();
         };
 
         audio.onerror = () => {
-            if (audioElementRef.current !== audio) return;
             setAudioLoading(false);
             setIsAudioPlaying(false);
         };
@@ -164,16 +169,12 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         const playPromise = audio.play();
         if (playPromise !== undefined) {
             playPromise.then(() => {
-                if (audioElementRef.current === audio) {
-                    setAudioLoading(false);
-                    setIsAudioPlaying(true);
-                }
+                setAudioLoading(false);
+                setIsAudioPlaying(true);
             }).catch(e => {
-                console.warn("Playback prevented", e);
-                if (audioElementRef.current === audio) {
-                    setAudioLoading(false);
-                    setIsAudioPlaying(false);
-                }
+                console.warn("Playback prevented by browser autoplay policy", e);
+                setAudioLoading(false);
+                setIsAudioPlaying(false);
             });
         }
     } catch (error) {
@@ -184,10 +185,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   };
 
   const toggleAudio = () => {
+      unlockAudioContext();
       if (isAudioPlaying) {
           stopAudio();
       } else {
-          // Re-play current page audio
           if (currentPage > 0 && currentPage <= story.pages.length) {
              const pageData = story.pages[currentPage - 1];
              if (pageData.audioBase64) {
@@ -199,26 +200,26 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   // Auto-play effect when changing pages
   useEffect(() => {
-    stopAudio(); // Stop previous page audio immediately
+    stopAudio();
 
     if (currentPage > 0 && currentPage <= story.pages.length) {
         const pageData = story.pages[currentPage - 1];
         if (pageData.audioBase64) {
-            // Small delay to ensure transition feels smooth and context is ready
             const timer = setTimeout(() => {
                 playAudio(pageData.audioBase64);
-            }, 500);
+            }, 300);
             return () => clearTimeout(timer);
         }
     }
   }, [currentPage, story.pages]);
 
-
   const handleNext = () => {
+    unlockAudioContext();
     if (currentPage < totalPages) setCurrentPage(c => c + 1);
   };
 
   const handlePrev = () => {
+    unlockAudioContext();
     if (currentPage > 0) setCurrentPage(c => c - 1);
   };
 
