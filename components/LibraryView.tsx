@@ -73,27 +73,6 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
                   </button>
 
                   <button 
-                    onClick={async () => {
-                      const appUrl = "https://masal-atolyesi-v2.vercel.app/";
-                      const shareText = `Ankara Çocuk Etkinlikler'de "${saved.story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}`;
-                      if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
-                        (window as any).AndroidShare.shareText(shareText, "Masalı Paylaş");
-                        return;
-                      }
-                      if (typeof navigator !== 'undefined' && navigator.share) {
-                        try {
-                          await navigator.share({ title: saved.story.title, text: shareText, url: appUrl });
-                          return;
-                        } catch (e) { /* fallback */ }
-                      }
-                      window.location.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
-                    }}
-                    className="bg-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-pink-600 transition flex items-center gap-1 cursor-pointer active:scale-95"
-                  >
-                    Paylaş
-                  </button>
-
-                  <button 
                     onClick={() => {
                         if (window.confirm("Bu masalı silmek istediğinize emin misiniz?")) {
                             onDeleteStory(saved.id);
