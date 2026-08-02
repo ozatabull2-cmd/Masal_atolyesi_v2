@@ -36,6 +36,22 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
     if (navigator.share) {
       try {
+        if (story.coverImageUrl) {
+          try {
+            const resp = await fetch(story.coverImageUrl);
+            const blob = await resp.blob();
+            const file = new File([blob], `Kapak_${story.title.replace(/\s+/g, '_')}.jpg`, { type: 'image/jpeg' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: story.title,
+                text: shareText
+              });
+              return;
+            }
+          } catch(e) { /* ignore image fetch error */ }
+        }
+
         await navigator.share({
           title: story.title,
           text: shareText,
@@ -43,13 +59,12 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         });
         return;
       } catch (err) {
-        console.log("Navigator share iptal edildi veya başarısız", err);
+        console.log("Navigator share canceled or failed", err);
       }
     }
 
-    // Direct WhatsApp Fallback
-    const encodedText = encodeURIComponent(shareText);
-    window.open(`https://api.whatsapp.com/send?text=${encodedText}`, '_blank');
+    // Fallback to direct WhatsApp
+    window.location.href = `whatsapp://send?text=${encodeURIComponent(shareText)}`;
   };
 
   // Feedback State

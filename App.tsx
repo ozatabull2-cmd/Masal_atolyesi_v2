@@ -323,6 +323,13 @@ function App() {
           }
 
           pagesWithAssets.push({ ...page, imageUrl, audioBase64 });
+
+          // Progressively update library with accumulated assets
+          await saveStory({
+            ...generatedStory,
+            coverImageUrl: coverUrl,
+            pages: pagesWithAssets
+          });
       }
 
       const finalStory = { 
