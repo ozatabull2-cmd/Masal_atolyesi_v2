@@ -34,26 +34,25 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   const handleShare = async () => {
     const appUrl = "https://masal-atolyesi-v2.vercel.app/";
-    const playStoreUrl = "https://play.google.com/store/apps/details?id=com.ankara.cocuk.etkinlikler";
-    const shareText = `Ankara Çocuk Etkinlikler’de "${story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}\n\nTüm Ankara etkinlikleri için uygulamamızı ücretsiz indirin: 👉 ${playStoreUrl}`;
+    const shareText = `Ankara Çocuk Etkinlikler'de "${story.title}" isimli harika bir masal oluşturdum! İncelemek için tıkla: ${appUrl}`;
 
-    // 1. Android Native Share Bridge
+    // 1. Android Native Share Bridge (opens native Android share chooser dialog)
     if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
       (window as any).AndroidShare.shareText(shareText, "Masalı Paylaş");
       return;
     }
 
-    // 2. Web Share API
+    // 2. Web Share API (opens native OS share chooser dialog)
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title: story.title, text: shareText, url: appUrl });
         return;
       } catch (err) {
-        // Fallback
+        // User cancelled share box
       }
     }
 
-    // 3. Clipboard fallback with toast
+    // 3. Clipboard fallback
     try {
       await navigator.clipboard.writeText(shareText);
       setShareToast(true);
