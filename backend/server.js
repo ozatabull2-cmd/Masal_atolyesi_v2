@@ -210,8 +210,17 @@ app.post('/api/generate-speech', async (req, res) => {
             return res.status(400).json({ error: "Geçersiz istek. 'text' alanı zorunludur." });
         }
 
+        // Phonetic normalization for Turkish story onomatopoeia sounds
+        const cleanTextForTTS = text
+            .replace(/\bvızz+\b/gi, "vızzz")
+            .replace(/\bvız\b/gi, "vızz")
+            .replace(/\bcık\s+cık\b/gi, "cık cık")
+            .replace(/\bpat\s+pat\b/gi, "pat pat")
+            .replace(/\bşırlı\b/gi, "şırıl")
+            .replace(/\bşırr+\b/gi, "şırıl şırıl");
+
         const request = {
-            input: { text: text },
+            input: { text: cleanTextForTTS },
             // Turkish Chirp3 HD Generative Studio Voice (Female - Storyteller)
             voice: { languageCode: 'tr-TR', name: 'tr-TR-Chirp3-HD-Callirrhoe' },
             audioConfig: { audioEncoding: 'MP3' },
