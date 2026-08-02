@@ -33,6 +33,11 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ status, progress }) => {
             ></div>
         </div>
       )}
+
+      {/* Clear User Warning Badge */}
+      <div className="mt-8 px-4 py-2 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-2 max-w-xs text-amber-800 text-xs font-semibold text-center shadow-sm">
+        <span>⚠️ Lütfen masal hazırlanırken bu pencereyi kapatmayın.</span>
+      </div>
     </div>
   );
 };
