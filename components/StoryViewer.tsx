@@ -402,24 +402,24 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
            <div className="absolute inset-0 bg-black opacity-10 pointer-events-none rounded-r-3xl rounded-l-lg z-20"></div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-sm px-2">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-sm px-2 relative z-30">
              <button 
                 onClick={handleNext}
-                className="col-span-1 sm:col-span-2 bg-white text-indigo-600 px-5 py-2.5 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2 text-sm"
+                className="col-span-1 sm:col-span-2 bg-white text-indigo-600 px-5 py-2.5 rounded-full font-bold shadow-lg hover:bg-indigo-50 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
               >
                 Kitabı Aç <ArrowRight className="w-4 h-4" />
               </button>
 
               <button 
                 onClick={handleShare}
-                className="col-span-1 bg-pink-500 text-white px-4 py-2.5 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-xs"
+                className="col-span-1 bg-pink-500 text-white px-4 py-2.5 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-xs cursor-pointer active:scale-95"
               >
-                <Share2 className="w-4 h-4" /> Hikayede / DM'de Paylaş
+                <Share2 className="w-4 h-4" /> Arkadaşlarınla Paylaş
               </button>
 
               <button 
                 onClick={onReset}
-                className="col-span-1 bg-yellow-400 text-indigo-900 px-4 py-2.5 rounded-full font-bold shadow-lg hover:bg-yellow-300 transition flex items-center justify-center gap-2 text-xs"
+                className="col-span-1 bg-yellow-400 text-indigo-900 px-4 py-2.5 rounded-full font-bold shadow-lg hover:bg-yellow-300 transition flex items-center justify-center gap-2 text-xs cursor-pointer"
               >
                 <RefreshCcw className="w-4 h-4" /> Yeni Masal Yaz
               </button>
