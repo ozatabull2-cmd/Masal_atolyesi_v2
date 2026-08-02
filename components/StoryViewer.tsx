@@ -128,7 +128,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         audio.onended = () => {
             if (audioElementRef.current !== audio) return;
             setIsAudioPlaying(false);
-            handleNext();
         };
         
         audio.oncanplaythrough = () => {
