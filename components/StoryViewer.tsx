@@ -99,6 +99,37 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   // Persistent single Audio Element Ref to bypass Android WebView autoplay restrictions
   const sharedAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  const getAndroidAudio = () => {
+    if (typeof window !== 'undefined' && (window as any).AndroidAudio) {
+      return (window as any).AndroidAudio;
+    }
+    return null;
+  };
+
+  // Register global window callbacks for Android native player controls
+  useEffect(() => {
+    (window as any).onNativePlayStateChanged = (isPlaying: boolean) => {
+      setIsAudioPlaying(isPlaying);
+      setAudioLoading(false);
+    };
+
+    (window as any).onNativeNextPage = () => {
+      if (currentPage < totalPages) setCurrentPage(c => c + 1);
+    };
+
+    (window as any).onNativePrevPage = () => {
+      if (currentPage > 0) setCurrentPage(c => c - 1);
+    };
+
+    return () => {
+      try {
+        delete (window as any).onNativePlayStateChanged;
+        delete (window as any).onNativeNextPage;
+        delete (window as any).onNativePrevPage;
+      } catch (e) { /* ignore */ }
+    };
+  }, [currentPage, totalPages]);
+
   // Warmup/unlock audio element during user touch gesture (like Kitabı Aç or Sonraki Sayfa)
   const unlockAudioContext = () => {
     if (!sharedAudioRef.current) {
@@ -106,10 +137,10 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     }
   };
 
-  // Stop playback when visibility changes
+  // Stop playback when visibility changes (only for non-Android standard browser users)
   useEffect(() => {
     const handleVisibilityChange = () => {
-        if (document.visibilityState === 'hidden') {
+        if (document.visibilityState === 'hidden' && !getAndroidAudio()) {
             stopAudio();
         }
     };
@@ -122,6 +153,13 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   }, []);
 
   const stopAudio = () => {
+    const androidAudio = getAndroidAudio();
+    if (androidAudio && typeof androidAudio.stopAudio === 'function') {
+      try {
+        androidAudio.stopAudio();
+      } catch (e) { /* ignore */ }
+    }
+
     if (sharedAudioRef.current) {
       try {
         sharedAudioRef.current.onerror = null;
@@ -136,6 +174,20 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const playAudio = async (base64Data: string | undefined) => {
     stopAudio();
     if (!base64Data) return;
+
+    const androidAudio = getAndroidAudio();
+    if (androidAudio && typeof androidAudio.playAudio === 'function') {
+      setAudioLoading(true);
+      try {
+        androidAudio.playAudio(base64Data, currentPage, story.title);
+        setIsAudioPlaying(true);
+      } catch (e) {
+        console.error("Native Android audio play failed, fallback to web audio", e);
+      } finally {
+        setAudioLoading(false);
+      }
+      return;
+    }
 
     setAudioLoading(true);
     try {

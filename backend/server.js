@@ -210,18 +210,30 @@ app.post('/api/generate-speech', async (req, res) => {
             return res.status(400).json({ error: "Geçersiz istek. 'text' alanı zorunludur." });
         }
 
-        // Phonetic normalization for Turkish story onomatopoeia sounds
-        const cleanTextForTTS = text
-            .replace(/\bv\s*[\-\s\.]*\s*[ıi]\s*[\-\s\.]*\s*z\s*[\-\s\.]*\s*z+\b/gi, "vızzz")
-            .replace(/\bv[ıi]z+\b/gi, "vızzz")
-            .replace(/\bv[ıi]z\b/gi, "vızz")
+        // 1. XML escape unsafe characters (&, <, >, ', ") so SSML parsing never fails
+        let cleanTextForTTS = text.replace(/[<>&'"]/g, (c) => {
+            switch (c) {
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '&': return '&amp;';
+                case '\'': return '&apos;';
+                case '"': return '&quot;';
+                default: return c;
+            }
+        });
+
+        // 2. Single-pass phonetic normalization for Turkish story onomatopoeia sounds (IPA Phoneme Option 2)
+        cleanTextForTTS = cleanTextForTTS
+            .replace(/\b(?:v\s*[\-\s\.]*\s*[ıi]\s*[\-\s\.]*\s*z(?:\s*[\-\s\.]*\s*z)*|v[ıi]z+)\b/gi, "<phoneme alphabet='ipa' ph='vɯzː'>vizz</phoneme>")
             .replace(/\bcık\s+cık\b/gi, "cık cık")
             .replace(/\bpat\s+pat\b/gi, "pat pat")
             .replace(/\bşırlı\b/gi, "şırıl")
-            .replace(/\bşırr+\b/gi, "şırıl şırıl");
+            .replace(/\bşırr+\b/gi, "şırıl");
+
+        const ssmlContent = `<speak>${cleanTextForTTS}</speak>`;
 
         const request = {
-            input: { text: cleanTextForTTS },
+            input: { ssml: ssmlContent },
             // Turkish Chirp3 HD Generative Studio Voice (Female - Storyteller)
             voice: { languageCode: 'tr-TR', name: 'tr-TR-Chirp3-HD-Callirrhoe' },
             audioConfig: { audioEncoding: 'MP3' },
