@@ -496,6 +496,22 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
               </button>
 
               <button 
+                onClick={() => handleDownloadClick('pdf')}
+                disabled={isGeneratingPDF}
+                className="col-span-1 bg-emerald-600 text-white px-3 py-2.5 rounded-full font-bold shadow-lg hover:bg-emerald-500 transition flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
+              >
+                {isGeneratingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} PDF İndir
+              </button>
+
+              <button 
+                onClick={() => handleDownloadClick('audio')}
+                disabled={isDownloadingAudio}
+                className="col-span-1 bg-purple-600 text-white px-3 py-2.5 rounded-full font-bold shadow-lg hover:bg-purple-500 transition flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
+              >
+                {isDownloadingAudio ? <Loader2 className="w-4 h-4 animate-spin" /> : <Music className="w-4 h-4" />} Sesi İndir
+              </button>
+
+              <button 
                 onClick={handleShare}
                 className="col-span-1 bg-pink-500 text-white px-3 py-2.5 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-1.5 text-xs cursor-pointer active:scale-95"
               >
@@ -574,6 +590,24 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
                     </div>
                   </div>
                 )}
+
+                <div className="grid grid-cols-2 gap-2 w-full mb-2">
+                    <button
+                    onClick={() => handleDownloadClick('pdf')}
+                    disabled={isGeneratingPDF}
+                    className="col-span-1 bg-emerald-600 text-white px-3 py-3 rounded-xl font-bold hover:bg-emerald-500 transition flex items-center justify-center gap-1.5 shadow-lg text-xs cursor-pointer disabled:opacity-50"
+                    >
+                    {isGeneratingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} PDF İndir
+                    </button>
+
+                    <button
+                    onClick={() => handleDownloadClick('audio')}
+                    disabled={isDownloadingAudio}
+                    className="col-span-1 bg-purple-600 text-white px-3 py-3 rounded-xl font-bold hover:bg-purple-500 transition flex items-center justify-center gap-1.5 shadow-lg text-xs cursor-pointer disabled:opacity-50"
+                    >
+                    {isDownloadingAudio ? <Loader2 className="w-4 h-4 animate-spin" /> : <Music className="w-4 h-4" />} Sesi İndir (MP3)
+                    </button>
+                </div>
 
                 <div className="flex gap-2 w-full">
                     <button
