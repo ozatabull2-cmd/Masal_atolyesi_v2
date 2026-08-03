@@ -148,27 +148,34 @@ app.post('/api/generate-illustration', async (req, res) => {
             prompt, // Attempt 1: Original safe prompt from frontend
             
             // Attempt 2: Softened prompt (Replace potentially risky words)
-            prompt.replace(/child/gi, "")
-                  .replace(/alien/gi, "")
+            prompt.replace(/child|kid|boy|girl/gi, "hero")
+                  .replace(/alien|monster|creature/gi, "friendly companion")
                   .replace(/little hero|young storybook hero/gi, "cute magical companion")
                   .replace(/friendly space creature|visitor from the stars/gi, "friendly fantasy visitor")
                   + " safe educational storybook scene, cartoon, non-realistic, whimsical illustration.",
                   
             // Attempt 3: Ultra-safe generic storybook prompt
-            "Ultra-safe generic storybook prompt. Safe educational storybook scene, cartoon, non-realistic, whimsical illustration. Cute magical companion in a friendly fantasy landscape. No danger, no fear.",
+            "Cozy magical storybook illustration, friendly cute companion in a whimsical fantasy nature landscape. Bright colorful artwork, safe for kids.",
             
-            // Attempt 4: Final fallback (No characters or creatures)
+            // Attempt 4: Final fallback (Landscape background only)
             "Magical storybook background, cozy colorful fantasy scene, no human characters, no creatures, no danger."
+        ];
+
+        const modelsToTry = [
+            'imagen-4.0-fast-generate-001',
+            'imagen-3.0-generate-002',
+            'imagen-3.0-fast-generate-001'
         ];
 
         const delay = (ms) => new Promise(res => setTimeout(res, ms));
 
         for (let attempt = 0; attempt < promptsToTry.length; attempt++) {
             const currentPrompt = promptsToTry[attempt];
+            const currentModel = modelsToTry[attempt % modelsToTry.length];
             
             try {
                 const response = await ai.models.generateImages({
-                    model: 'imagen-4.0-fast-generate-001',
+                    model: currentModel,
                     prompt: currentPrompt,
                     config: {
                         numberOfImages: 1,
@@ -179,19 +186,21 @@ app.post('/api/generate-illustration', async (req, res) => {
 
                 if (response.generatedImages && response.generatedImages.length > 0 && response.generatedImages[0].image.imageBytes) {
                     const base64Image = response.generatedImages[0].image.imageBytes;
-                    console.log(`[generate-illustration] Success on attempt ${attempt + 1}`);
+                    console.log(`[generate-illustration] Success on attempt ${attempt + 1} with model ${currentModel}`);
                     return res.status(200).json({ image: `data:image/png;base64,${base64Image}`, blocked: false });
                 } else {
-                    console.warn(`[generate-illustration] Attempt ${attempt + 1} blocked by safety filter. Attempting fallback...`);
+                    console.warn(`[generate-illustration] Attempt ${attempt + 1} with model ${currentModel} returned empty image. Retrying...`);
                 }
             } catch (apiError) {
-                console.error(`[generate-illustration] Attempt ${attempt + 1} failed with API error:`, apiError.message);
-                // Continue to the next attempt even on API error (unless it's a fatal network error, but we'll retry anyway)
+                console.error(`[generate-illustration] Attempt ${attempt + 1} with model ${currentModel} failed:`, apiError.message);
+                if (apiError.message && (apiError.message.includes('429') || apiError.message.includes('Quota'))) {
+                    await delay(4000); // Extra backoff delay on rate limits
+                }
             }
 
-            // Wait 2.5 seconds before the next retry to avoid quota limits
+            // Wait 2 seconds before the next retry to avoid quota limits
             if (attempt < promptsToTry.length - 1) {
-                await delay(2500);
+                await delay(2000);
             }
         }
         
