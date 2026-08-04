@@ -38,7 +38,9 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {stories.map(saved => (
+          {stories.map(saved => {
+            if (!saved || !saved.story) return null;
+            return (
             <div key={saved.id} className="border border-slate-100 bg-slate-50 rounded-2xl p-4 flex gap-4 hover:shadow-md transition group">
               {saved.story.coverImageUrl ? (
                 <div className="w-24 h-32 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
@@ -53,14 +55,14 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
               <div className="flex flex-col flex-1 justify-between">
                 <div>
                   <h4 className="font-bold text-indigo-900 leading-tight mb-1 line-clamp-2">
-                    {saved.story.title}
+                    {saved.story.title || "İsimsiz Masal"}
                   </h4>
                   <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400 mb-2 uppercase tracking-wide">
                     <Clock className="w-3 h-3" />
-                    {new Date(saved.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
+                    {saved.date ? new Date(saved.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : ''}
                   </div>
                   <p className="text-xs text-slate-500 line-clamp-2">
-                    {saved.story.summary}
+                    {saved.story.summary || ''}
                   </p>
                 </div>
                 
@@ -84,8 +86,8 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
                   </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
