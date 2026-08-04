@@ -153,37 +153,22 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit, isSubmitting, remainingQu
                         <span className="text-sm font-bold text-purple-700">Promosyon Kodu</span>
                     </div>
 
-                        <div className="mb-3 bg-green-50 p-3 rounded-xl border border-green-100">
-                            <p className="text-xs text-green-800 mb-2 leading-relaxed">
-                                🎁 <strong>+Hak</strong> veren promosyon kodunu, WhatsApp grubumuza katılarak <strong>sabit mesaj</strong> kısmından alabilirsiniz.
-                            </p>
-                            <a 
-                                href="https://chat.whatsapp.com/JJFgs0neRkLCtm0OAHzOeK" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold py-2 rounded-lg transition-colors shadow-sm"
-                            >
-                                <MessageCircle className="w-4 h-4" />
-                                WhatsApp Grubuna Katıl
-                            </a>
-                        </div>
-
-                        <div className="flex gap-2 max-w-sm">
-                            <input 
-                                type="text" 
-                                placeholder="Kodu buraya girin..." 
-                                value={promoCode}
-                                onChange={(e) => setPromoCode(e.target.value)}
-                                className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
-                            />
-                            <button 
-                                type="button"
-                                onClick={handlePromoSubmit}
-                                className="px-3 py-1.5 bg-purple-500 text-white text-sm font-bold rounded-lg hover:bg-purple-600 transition"
-                            >
-                                Kullan
-                            </button>
-                        </div>
+                    <div className="flex gap-2 max-w-sm">
+                        <input 
+                            type="text" 
+                            placeholder="Kodu buraya girin..." 
+                            value={promoCode}
+                            onChange={(e) => setPromoCode(e.target.value)}
+                            className="flex-1 px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200"
+                        />
+                        <button 
+                            type="button"
+                            onClick={handlePromoSubmit}
+                            className="px-3 py-1.5 bg-purple-500 text-white text-sm font-bold rounded-lg hover:bg-purple-600 transition"
+                        >
+                            Kullan
+                        </button>
+                    </div>
                     {promoMessage && (
                         <p className={`text-xs mt-2 font-bold ${promoMessage.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
                             {promoMessage.text}
