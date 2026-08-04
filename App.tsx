@@ -219,10 +219,10 @@ function App() {
         return { success: false, message: "Geçersiz promosyon kodu." };
     }
 
-    // Check if user has already used this promo code on this device
+    // Check if user has already used this promo code on this device (B12 is multi-use/unlimited)
     const usedCodesKey = `used_promos_${userEmail || 'guest'}`;
     const usedCodes: string[] = JSON.parse(localStorage.getItem(usedCodesKey) || '[]');
-    if (usedCodes.includes(normalizedCode)) {
+    if (normalizedCode !== 'B12' && usedCodes.includes(normalizedCode)) {
         return { success: false, message: "Bu promosyon kodunu daha önce kullandınız!" };
     }
 
