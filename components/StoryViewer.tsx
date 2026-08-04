@@ -46,7 +46,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   const handleShare = async () => {
     setIsSharing(true);
     const playStoreUrl = "https://play.google.com/store/apps/details?id=com.ankara.cocuk.etkinlikler";
-    const shareText = `Ankara Çocuk Etkinlikler uygulaması ile "${story.title}" isimli harika bir masal oluşturdum! Sen de hemen indirip kendi özel masalını oluştur:\n${playStoreUrl}`;
+    const shareText = `Ankara Çocuk Etkinlikler uygulaması ile "${story.title}" isimli harika bir masal oluşturdum! Sen de hemen indirip kendi özel masalını oluştur:\n\n${playStoreUrl}`;
 
     try {
       const imageFile = await fetchStaticShareFile();
