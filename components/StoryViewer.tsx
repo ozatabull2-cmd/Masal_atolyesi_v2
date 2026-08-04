@@ -32,33 +32,128 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
   const [shareToast, setShareToast] = useState(false);
 
-  const handleShare = async () => {
-    const playStoreUrl = "https://play.google.com/store/apps/details?id=com.ankara.cocuk.etkinlikler";
-    const shareText = `Ankara Çocuk Etkinlikler uygulaması ile harika masallar oluşturabilir ve dinleyebilirsin! Sen de hemen indirip kendi özel masalını oluştur:\n${playStoreUrl}`;
-
-    // 1. Android Native Share Bridge (opens native Android share chooser dialog)
-    if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
-      (window as any).AndroidShare.shareText(shareText, "Uygulamayı Paylaş");
-      return;
-    }
-
-    // 2. Web Share API (opens native OS share chooser dialog)
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({ title: "Masal Atölyesi", text: shareText, url: playStoreUrl });
-        return;
-      } catch (err) {
-        // User cancelled share box
-      }
-    }
-
-    // 3. Clipboard fallback
+  const createShareImageFile = async (): Promise<File | null> => {
     try {
+      const coverImage = story.coverImage || (story.pages[0]?.imageUrl);
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920; // 9:16 Story Aspect Ratio
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      // Draw Gradient Background
+      const gradient = ctx.createLinearGradient(0, 0, 0, 1920);
+      gradient.addColorStop(0, '#4F46E5'); // indigo-600
+      gradient.addColorStop(0.5, '#7C3AED'); // purple-600
+      gradient.addColorStop(1, '#EC4899'); // pink-500
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Header Text
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 54px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('✨ MASAL ATÖLYESİ ✨', 540, 180);
+
+      // Story Title Box
+      ctx.font = 'bold 64px sans-serif';
+      ctx.fillText(`"${story.title}"`, 540, 280);
+
+      // Draw Cover Image if available
+      if (coverImage) {
+        await new Promise<void>((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            // Draw image with rounded corners
+            const imgWidth = 840;
+            const imgHeight = 840;
+            const imgX = 120;
+            const imgY = 360;
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(imgX, imgY, imgWidth, imgHeight, 40);
+            ctx.clip();
+            ctx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
+            ctx.restore();
+            resolve();
+          };
+          img.onerror = () => resolve();
+          img.src = coverImage;
+        });
+      }
+
+      // Footer Box
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.beginPath();
+      ctx.roundRect(100, 1300, 880, 480, 40);
+      ctx.fill();
+
+      // App Promo Text
+      ctx.fillStyle = '#1E1B4B';
+      ctx.font = 'bold 44px sans-serif';
+      ctx.fillText('Ankara Çocuk Etkinlikler', 540, 1400);
+
+      ctx.fillStyle = '#4B5563';
+      ctx.font = '36px sans-serif';
+      ctx.fillText('Çocuğunuza özel sihirli masallar oluşturun!', 540, 1480);
+
+      ctx.fillStyle = '#4F46E5';
+      ctx.font = 'bold 40px sans-serif';
+      ctx.fillText('📲 Google Play\'den Hemen İndirin', 540, 1580);
+
+      // Convert canvas to Blob File
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) return null;
+      return new File([blob], `${story.title.replace(/\s+/g, '_')}_masal.png`, { type: 'image/png' });
+    } catch (e) {
+      console.error("Failed to generate share image", e);
+      return null;
+    }
+  };
+
+  const handleShare = async () => {
+    setIsSharing(true);
+    const playStoreUrl = "https://play.google.com/store/apps/details?id=com.ankara.cocuk.etkinlikler";
+    const shareText = `Ankara Çocuk Etkinlikler uygulaması ile "${story.title}" isimli harika bir masal oluşturdum! Sen de hemen indirip kendi özel masalını oluştur:\n${playStoreUrl}`;
+
+    try {
+      const imageFile = await createShareImageFile();
+
+      // 1. Web Share API with File (Triggers Instagram Stories / WhatsApp Status on Android & iOS)
+      if (imageFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
+        await navigator.share({
+          title: story.title,
+          text: shareText,
+          files: [imageFile]
+        });
+        setIsSharing(false);
+        return;
+      }
+
+      // 2. Android Native Share Bridge fallback
+      if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
+        (window as any).AndroidShare.shareText(shareText, "Uygulamayı Paylaş");
+        setIsSharing(false);
+        return;
+      }
+
+      // 3. Web Share API text fallback
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: "Masal Atölyesi", text: shareText, url: playStoreUrl });
+        setIsSharing(false);
+        return;
+      }
+
+      // 4. Clipboard fallback
       await navigator.clipboard.writeText(shareText);
       setShareToast(true);
       setTimeout(() => setShareToast(false), 3000);
-    } catch {
-      window.prompt("Aşağıdaki metni kopyalayıp paylaşabilirsiniz:", shareText);
+    } catch (err) {
+      console.log("Share cancelled or failed", err);
+    } finally {
+      setIsSharing(false);
     }
   };
 
