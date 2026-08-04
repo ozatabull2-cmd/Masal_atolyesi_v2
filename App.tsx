@@ -15,23 +15,7 @@ const RESET_PERIOD_MS = 12 * 60 * 60 * 1000; // 12 hours in ms
 
 // Promo Codes configuration: code -> credits
 const PROMO_DATA: Record<string, number> = {
-  "ANKARA": 1,
-  "K7L2M9": 1,
-  "X4P8R3": 1,
-  "T9Y5W1": 1,
-  "B2H6S8": 1,
-  "V3N7C4": 1,
-  "J8D5F2": 1,
-  "M6G9Z1": 1,
-  "R4K3L7": 1,
-  "S5T8P2": 1,
-  "Y1W9Q6": 1,
-  // 10 Rights Codes
-  "ANKARA10": 10,
-  "MASAL10": 10,
-  "SIHIR10": 10,
-  "OZEL10": 10,
-  "HEDIYE10": 10
+  "B12": 1
 };
 
 const PROMO_CODES = Object.keys(PROMO_DATA);
