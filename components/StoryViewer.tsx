@@ -121,7 +121,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     try {
       const imageFile = await createShareImageFile();
 
-      // 1. Web Share API with File (Triggers Instagram Stories / WhatsApp Status on Android & iOS)
+      // 1. Web Share API with File (Standard browser & modern WebViews with File Sharing support)
       if (imageFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [imageFile] })) {
         await navigator.share({
           title: story.title,
@@ -132,16 +132,16 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
         return;
       }
 
-      // 2. Android Native Share Bridge fallback
-      if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
-        (window as any).AndroidShare.shareText(shareText, "Uygulamayı Paylaş");
+      // 2. Web Share API text-only fallback
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: "Masal Atölyesi", text: shareText, url: playStoreUrl });
         setIsSharing(false);
         return;
       }
 
-      // 3. Web Share API text fallback
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({ title: "Masal Atölyesi", text: shareText, url: playStoreUrl });
+      // 3. Android Native Bridge fallback (text only if WebView disables file share)
+      if (typeof window !== 'undefined' && (window as any).AndroidShare && typeof (window as any).AndroidShare.shareText === 'function') {
+        (window as any).AndroidShare.shareText(shareText, "Uygulamayı Paylaş");
         setIsSharing(false);
         return;
       }
