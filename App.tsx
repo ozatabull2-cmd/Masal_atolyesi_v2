@@ -15,17 +15,17 @@ const RESET_PERIOD_MS = 12 * 60 * 60 * 1000; // 12 hours in ms
 
 // Promo Codes configuration: code -> credits (Adds 1 credit per code)
 const PROMO_DATA: Record<string, number> = {
-  "B12": 1,
-  "MASAL12": 1,
-  "SIHIR12": 1,
-  "ANKARA12": 1,
-  "MASAL01": 1,
-  "MASAL02": 1,
-  "MASAL03": 1,
-  "MASAL04": 1,
-  "MASAL05": 1,
-  "MASAL06": 1,
-  "MASAL07": 1
+  "B12": 1,        // Sınırsız / Çoklu kullanım
+  "K7L2M9": 1,     // Tek kullanımlık kodlar
+  "X4P8R3": 1,
+  "T9Y5W1": 1,
+  "B2H6S8": 1,
+  "V3N7C4": 1,
+  "J8D5F2": 1,
+  "M6G9Z1": 1,
+  "R4K3L7": 1,
+  "S5T8P2": 1,
+  "Y1W9Q6": 1
 };
 
 const PROMO_CODES = Object.keys(PROMO_DATA);
