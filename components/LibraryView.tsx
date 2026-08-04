@@ -41,49 +41,50 @@ const LibraryView: React.FC<LibraryViewProps> = ({ stories, onOpenStory, onDelet
           {stories.map(saved => {
             if (!saved || !saved.story) return null;
             return (
-            <div key={saved.id} className="border border-slate-100 bg-slate-50 rounded-2xl p-4 flex gap-4 hover:shadow-md transition group">
-              {saved.story.coverImageUrl ? (
-                <div className="w-24 h-32 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
-                  <img src={saved.story.coverImageUrl} className="w-full h-full object-cover" alt="Cover" />
-                </div>
-              ) : (
-                <div className="w-24 h-32 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0 text-indigo-300">
-                  <BookOpen className="w-8 h-8" />
-                </div>
-              )}
-              
-              <div className="flex flex-col flex-1 justify-between">
-                <div>
-                  <h4 className="font-bold text-indigo-900 leading-tight mb-1 line-clamp-2">
-                    {saved.story.title || "İsimsiz Masal"}
-                  </h4>
-                  <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400 mb-2 uppercase tracking-wide">
-                    <Clock className="w-3 h-3" />
-                    {saved.date ? new Date(saved.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : ''}
+              <div key={saved.id} className="border border-slate-100 bg-slate-50 rounded-2xl p-4 flex gap-4 hover:shadow-md transition group">
+                {saved.story.coverImageUrl ? (
+                  <div className="w-24 h-32 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+                    <img src={saved.story.coverImageUrl} className="w-full h-full object-cover" alt="Cover" />
                   </div>
-                  <p className="text-xs text-slate-500 line-clamp-2">
-                    {saved.story.summary || ''}
-                  </p>
-                </div>
+                ) : (
+                  <div className="w-24 h-32 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0 text-indigo-300">
+                    <BookOpen className="w-8 h-8" />
+                  </div>
+                )}
                 
-                <div className="flex items-center justify-between mt-3 gap-2">
-                  <button 
-                    onClick={() => onOpenStory(saved.story)}
-                    className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition"
-                  >
-                    Masalı Aç
-                  </button>
+                <div className="flex flex-col flex-1 justify-between">
+                  <div>
+                    <h4 className="font-bold text-indigo-900 leading-tight mb-1 line-clamp-2">
+                      {saved.story.title || "İsimsiz Masal"}
+                    </h4>
+                    <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400 mb-2 uppercase tracking-wide">
+                      <Clock className="w-3 h-3" />
+                      {saved.date ? new Date(saved.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : ''}
+                    </div>
+                    <p className="text-xs text-slate-500 line-clamp-2">
+                      {saved.story.summary || ''}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-3 gap-2">
+                    <button 
+                      onClick={() => onOpenStory(saved.story)}
+                      className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition"
+                    >
+                      Masalı Aç
+                    </button>
 
-                  <button 
-                    onClick={() => {
-                        if (window.confirm("Bu masalı silmek istediğinize emin misiniz?")) {
-                            onDeleteStory(saved.id);
-                        }
-                    }}
-                    className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition ml-auto"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button 
+                      onClick={() => {
+                          if (window.confirm("Bu masalı silmek istediğinize emin misiniz?")) {
+                              onDeleteStory(saved.id);
+                          }
+                      }}
+                      className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition ml-auto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
