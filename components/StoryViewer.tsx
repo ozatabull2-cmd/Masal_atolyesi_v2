@@ -534,9 +534,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
 
               <button 
                 onClick={handleShare}
-                className="col-span-1 bg-pink-500 text-white px-3 py-2.5 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-1.5 text-xs cursor-pointer active:scale-95"
+                className="col-span-2 bg-pink-500 text-white px-3 py-3 rounded-full font-bold shadow-lg hover:bg-pink-600 transition flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer active:scale-95"
               >
-                <Share2 className="w-4 h-4" /> Paylaş
+                <Share2 className="w-4 h-4" /> Uygulamayı Arkadaşlarınla Paylaş
               </button>
 
               <button 
@@ -615,9 +615,9 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
                 <div className="flex gap-2 w-full">
                     <button
                     onClick={handleShare}
-                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-3 rounded-xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg border border-pink-400 text-xs sm:text-sm cursor-pointer"
+                    className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-3 rounded-xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2 shadow-lg border border-pink-400 text-xs sm:text-sm cursor-pointer mb-2"
                     >
-                    <Share2 className="w-4 h-4" /> Masalı Paylaş
+                    <Share2 className="w-4 h-4" /> Uygulamayı Arkadaşlarınla Paylaş
                     </button>
 
                     <button
