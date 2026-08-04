@@ -119,7 +119,19 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
     });
   };
 
-  const totalPages = story.pages.length + 1; // Cover + Story Pages
+  if (!story || !story.pages) {
+    return (
+      <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-lg mx-auto my-8">
+        <h3 className="text-xl font-bold text-slate-800 mb-2">Masal Yüklenemedi</h3>
+        <p className="text-slate-500 mb-4 text-sm">Bu masala ait detay verileri eksik veya bozuk olabilir.</p>
+        <button onClick={onReset} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold">
+          Ana Sayfaya Dön
+        </button>
+      </div>
+    );
+  }
+
+  const totalPages = (story.pages?.length || 0) + 1; // Cover + Story Pages
 
   // Persistent single Audio Element Ref to bypass Android WebView autoplay restrictions
   const sharedAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -642,8 +654,8 @@ const StoryViewer: React.FC<StoryViewerProps> = ({ story, onReset, userEmail }) 
   }
 
   // Render Story Page
-  const pageData = story.pages[currentPage - 1];
-  const hasAudio = !!pageData.audioBase64;
+  const pageData = (story.pages && story.pages[currentPage - 1]) ? story.pages[currentPage - 1] : { text: '', imageUrl: '', audioBase64: '' };
+  const hasAudio = !!pageData?.audioBase64;
 
   return (
     <div 
