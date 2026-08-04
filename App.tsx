@@ -13,9 +13,19 @@ import { getUserQuota, updateUserQuota, db } from './firebase';
 const QUOTA_LIMIT = 1;
 const RESET_PERIOD_MS = 12 * 60 * 60 * 1000; // 12 hours in ms
 
-// Promo Codes configuration: code -> credits
+// Promo Codes configuration: code -> credits (Adds 1 credit per code)
 const PROMO_DATA: Record<string, number> = {
-  "B12": 1
+  "B12": 1,
+  "MASAL12": 1,
+  "SIHIR12": 1,
+  "ANKARA12": 1,
+  "MASAL01": 1,
+  "MASAL02": 1,
+  "MASAL03": 1,
+  "MASAL04": 1,
+  "MASAL05": 1,
+  "MASAL06": 1,
+  "MASAL07": 1
 };
 
 const PROMO_CODES = Object.keys(PROMO_DATA);
@@ -209,12 +219,15 @@ function App() {
         return { success: false, message: "Geçersiz promosyon kodu." };
     }
 
-    /* Single use check removed as per user request to allow entry whenever quota is full */
+    // Check if user has already used this promo code on this device
+    const usedCodesKey = `used_promos_${userEmail || 'guest'}`;
+    const usedCodes: string[] = JSON.parse(localStorage.getItem(usedCodesKey) || '[]');
+    if (usedCodes.includes(normalizedCode)) {
+        return { success: false, message: "Bu promosyon kodunu daha önce kullandınız!" };
+    }
 
     // Apply Promo
     const currentCount = QUOTA_LIMIT - remainingQuota;
-
-    // Get credits for this code
     const credits = PROMO_DATA[normalizedCode] || 1;
 
     // Reduce count (Adding credits)
@@ -222,8 +235,11 @@ function App() {
     const newData = { count: newCount, resetTime: nextResetTime };
     
     setStorageData(newData);
-    
     setRemainingQuota(QUOTA_LIMIT - newCount);
+
+    // Save code as used
+    usedCodes.push(normalizedCode);
+    localStorage.setItem(usedCodesKey, JSON.stringify(usedCodes));
     
     return { success: true, message: `Tebrikler! +${credits} Masal hakkı eklendi.` };
   };
